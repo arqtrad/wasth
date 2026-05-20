@@ -63,30 +63,35 @@ def f_lint(f) -> list:
         )
     return yaml_lint_list
 
+def f_schema(f) -> None:
+    pass
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         args = sys.argv[1:]
     else:
-        args = input(
-            "Informar um caminho relativo de pasta ou nomes de arquivos/ficheiros:\n"
-        ).split()
-    if os.path.isdir(args[0]):
-        filelist = [f for f in os.listdir(args[0]) if os.path.isfile(os.path.join(args[0], f))]
-        print("Conteúdo da pasta:")
-        for f in filelist:
-            fpath = os.path.join(args[0], f)
+        args = input("""
+Informar um caminho relativo de pasta ou nomes de arquivos/ficheiros:
+(deixar em branco para cancelar a operação)
+""").split()
+    if args:
+        if os.path.isdir(args[0]):
+            filelist = [
+                os.path.join(args[0], f) for f in os.listdir(args[0])
+                if os.path.isfile(os.path.join(args[0], f))
+            ]
+        elif os.path.isfile(args[0]):
+            filelist = args
+        for file in filelist:
             try:
-                with open(fpath, 'r') as f:
+                with open(file, 'r') as f:
                     if f.read(3) == '---':
-                        f_lint(fpath)
+                        f_lint(file)
+                        f_schema(file)
             except:
                 print(f"""
 -------------------------------------------------------------------------------
 
-🚫 Não foi possível ler {fpath}""")
-    elif os.path.isfile(args[0]):
-        try:
-            for f in args:
-                f_lint(f)
-        except:
-            print(f"🚫 Não foi possível ler {f}")
+🚫 Não foi possível ler {file}""")
+    else:
+        print("Operação cancelada")
