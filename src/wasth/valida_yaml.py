@@ -28,8 +28,8 @@ def f_read(f, mode='r', enc="utf-8") -> dict:
         }
     return document
 
-def f_load(f, mode='r', enc="utf-8"):
-    """Carrega metadados em forma de dicionário"""
+def f_load(f, mode='r', enc="utf-8") -> frontmatter.Post:
+    """Carrega metadados em forma de dicionário com python-frontmatter"""
     with open(f, 'r', encoding=enc) as f:
         post = frontmatter.load(f)
     return post
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     else:
         args = input("""
 Informar um caminho relativo de pasta ou nomes de arquivos/ficheiros:
-(deixar em branco para cancelar a operação)
+(deixar em branco cancela a operação)
 """).split()
     if args:
         if os.path.isdir(args[0]):
