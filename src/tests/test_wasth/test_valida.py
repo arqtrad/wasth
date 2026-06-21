@@ -15,6 +15,11 @@ def testfile():
 def test_f_read(testfile):
     assert type(wasth.valida_yaml.f_read(testfile)) is dict
 
+def test_f_load(testfile):
+    post = wasth.valida_yaml.f_load(testfile)
+    assert post['title'] == "Casarão Azul"
+    assert len(post.content) > 1
+
 def test_prt_title(testfile):
     assert wasth.valida_yaml.prt_title(testfile) == "Casarão Azul"
 

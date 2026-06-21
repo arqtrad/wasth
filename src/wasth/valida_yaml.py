@@ -5,6 +5,7 @@ Verifica se o arquivo/ficheiro existe, e se a sua sintaxe é válida.
 
 import sys
 import os
+import frontmatter
 from pprint import pprint
 from ruamel.yaml import YAML
 yaml = YAML(typ='safe')
@@ -18,21 +19,28 @@ yaml = YAML(typ='safe')
 def f_read(f, mode='r', enc="utf-8") -> dict:
     """Lê o arquivo/ficheiro se ele não estiver vazio"""
     with open(f, 'r', encoding=enc) as f:
-        contents = f.read().split('\n...\n\n', 2)
-        frontmatter = contents[0] + '\n'
+        contents = f.read().split('\n---\n\n', 2)
+        metadata = contents[0] + '\n'
         body = contents[1].lstrip() or ''
         document = {
-            'frontmatter': frontmatter.lstrip(),
+            'metadata': metadata.lstrip(),
             'body': body
         }
     return document
 
+def f_load(f, mode='r', enc="utf-8"):
+    """Carrega metadados em forma de dicionário"""
+    with open(f, 'r', encoding=enc) as f:
+        post = frontmatter.load(f)
+    return post
+
 def prt_title(f) -> str:
-    return yaml.load(f_read(f)['frontmatter'])['title']
+    post = f_load(f)
+    return post['title']
 
 def f_lint(f) -> list:
     """Mostra os problemas de formatação"""
-    frontmatter = f_read(f)['frontmatter']
+    metadata = f_read(f)['metadata']
     title = prt_title(f)
     print(f"""
 -------------------------------------------------------------------------------
@@ -43,7 +51,7 @@ def f_lint(f) -> list:
     import yamllint.config
     import yamllint.linter
     yaml_config = yamllint.config.YamlLintConfig("extends: relaxed")
-    yaml_lint = yamllint.linter.run(frontmatter, yaml_config)
+    yaml_lint = yamllint.linter.run(metadata, yaml_config)
     yaml_lint_list = []
     for p in yaml_lint:
         yaml_lint_list.append(p)
@@ -80,13 +88,12 @@ Informar um caminho relativo de pasta ou nomes de arquivos/ficheiros:
             filelist = args
         for file in filelist:
             try:
-                with open(file, 'r') as f:
-                    if f.read(3) == '---':
-                        f_lint(file)
-            except:
+                f_lint(file)
+            except Exception as e:
                 print(f"""
 -------------------------------------------------------------------------------
 
-🚫 Não foi possível ler {file}""")
+🚫 Não foi possível ler {file}:""")
+                print('  ' + str(e))
     else:
         print("Operação cancelada")
