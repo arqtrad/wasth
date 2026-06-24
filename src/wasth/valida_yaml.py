@@ -64,6 +64,7 @@ def f_lint(f) -> list:
             case _:
                 p_level = p.level
         print(
+            "\t",
             p_level,
             f"{p.line:>4}{':'}{p.column:>2}",
             f"{p.desc:<40}",
@@ -90,7 +91,7 @@ def f_schema(f):
         """)
     except YamaleError as e:
         for result in e.results:
-            print("Error validating data '%s' with '%s'\n\t" % (result.data, result.schema))
+            print("Erro de validação da estrutura de dados:")
             for error in result.errors:
                 print('\t%s' % error)
         exit(1)
