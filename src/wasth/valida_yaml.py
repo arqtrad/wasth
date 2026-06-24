@@ -53,6 +53,7 @@ def f_lint(f) -> list:
     yaml_config = yamllint.config.YamlLintConfig("extends: relaxed")
     yaml_lint = yamllint.linter.run(metadata, yaml_config)
     yaml_lint_list = []
+    print("Relatório de inconsistências de formatação:\n")
     for p in yaml_lint:
         yaml_lint_list.append(p)
         match p.level:
@@ -68,7 +69,31 @@ def f_lint(f) -> list:
             f"{p.desc:<40}",
             f"{'['}{p.rule}{']'}"
         )
+    if len(yaml_lint_list) == 0:
+        print("✅ Sem inconsistências de formatação.\n")
     return yaml_lint_list
+
+def f_schema(f):
+    """Deve receber o frontmatter extraído de f_read"""
+    import yamale
+    dir = os.path.abspath(os.path.dirname(__file__))
+    with open(os.path.join(dir, '../data/schema.yaml'), 'r') as schema_file:
+        schema = schema_file.read()
+    schema = yamale.make_schema(content=schema, parser='ruamel')
+    data = yamale.make_data(content=f, parser='ruamel')
+    try:
+        yamale.validate(schema, data)
+        print("✅ Estrutura de metadados é válida.")
+    except ValueError as e:
+        print(f"""
+❌ {e}
+        """)
+    except YamaleError as e:
+        for result in e.results:
+            print("Error validating data '%s' with '%s'\n\t" % (result.data, result.schema))
+            for error in result.errors:
+                print('\t%s' % error)
+        exit(1)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
@@ -89,6 +114,8 @@ Informar um caminho relativo de pasta ou nomes de arquivos/ficheiros:
         for file in filelist:
             try:
                 f_lint(file)
+                metadata = f_read(file)['metadata']
+                f_schema(metadata)
             except Exception as e:
                 print(f"""
 -------------------------------------------------------------------------------

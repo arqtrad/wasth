@@ -11,7 +11,16 @@ norma ISO 21127:2023.
 
 ## Como usar
 
-A plataforma de teste deste aplicativo deve ser configurada com [UV].
+A plataforma de teste deste aplicativo deve ser configurada com [UV]:
+
+```
+uv sync
+uv run pytest
+uv run src/wasth/valida_yaml.py [PATH...]
+```
+
+No momento, apenas `src/wasth/valida_yaml.py` e `src/wasth/valida_xml.py` 
+funcionam parcialmente.
 
 
 ## Roteiro de desenvolvimento

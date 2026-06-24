@@ -37,7 +37,7 @@ def test_create_schema(schema_path="schemata/lido-v1.1-profile-architecture-v1.1
     assert os.path.isfile(schema_path)
 
 def test_valid_xml(schema="schemata/lido-v1.1-profile-architecture-v1.1.xsd"):
-    assert wasth.valida_xml.valid_xml("testdata/Stabkirche_Gol_Original_de_en_v1.1_20250331.xml") == True
+    assert wasth.valida_xml.valid_xml("testdata/lido/Stabkirche_Gol_Original_de_en_v1.1_20250331.xml") == True
 
 def test_invalid_xml(schema="schemata/lido-v1.1-profile-architecture-v1.1.xsd"):
     with pytest.raises(xmlschema.exceptions.XMLResourceParseError):
