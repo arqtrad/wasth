@@ -15,17 +15,12 @@ def testfile():
 def test_f_read(testfile):
     assert type(wasth.valida_yaml.f_read(testfile)) is dict
 
-def test_f_load(testfile):
+def test_parse_metadata(testfile):
     import frontmatter
-    post = wasth.valida_yaml.f_load(testfile)
+    post = wasth.valida_yaml.parse_metadata(testfile)
     assert post['title'] == "Casarão Azul"
     assert len(post.content) > 1
     assert type(post) is frontmatter.Post
-
-def test_prt_title(testfile):
-    title = wasth.valida_yaml.prt_title(testfile)
-    assert title == "Casarão Azul"
-    assert type(title) is str
 
 def test_f_lint(testfile):
     assert type(wasth.valida_yaml.f_lint(testfile)) is list

@@ -6,7 +6,6 @@ Verifica se o arquivo/ficheiro existe, e se a sua sintaxe é válida.
 import sys
 import os
 import frontmatter
-from pprint import pprint
 from ruamel.yaml import YAML
 yaml = YAML(typ='safe')
 # import datetime
@@ -28,34 +27,28 @@ def f_read(f, mode='r', enc="utf-8") -> dict:
         }
     return document
 
-def f_load(f, mode='r', enc="utf-8") -> frontmatter.Post:
+def parse_metadata(f, mode='r', enc="utf-8") -> frontmatter.Post:
     """Carrega metadados em forma de dicionário com python-frontmatter"""
     with open(f, 'r', encoding=enc) as f:
         post = frontmatter.load(f)
     return post
 
-def prt_title(f) -> str:
-    post = f_load(f)
-    return post['title']
+def serialize(data) -> str:
+    if type(data) is dict:
+        metadata = frontmatter.dumps(data)
+        return metadata
+    else:
+        print("Data type is not a dict")
 
 def f_lint(f) -> list:
     """Mostra os problemas de formatação"""
     metadata = f_read(f)['metadata']
-    title = prt_title(f)
-    print(f"""
--------------------------------------------------------------------------------
-{title.upper():^79s}
-
-📄 {f}
-    """)
     import yamllint.config
     import yamllint.linter
     yaml_config = yamllint.config.YamlLintConfig("extends: relaxed")
     yaml_lint = yamllint.linter.run(metadata, yaml_config)
     yaml_lint_list = []
-    print("Relatório de inconsistências de formatação:\n")
     for p in yaml_lint:
-        yaml_lint_list.append(p)
         match p.level:
             case "error":
                 p_level = "❌ "
@@ -63,15 +56,9 @@ def f_lint(f) -> list:
                 p_level = "⚠️"
             case _:
                 p_level = p.level
-        print(
-            "\t",
-            p_level,
-            f"{p.line:>4}{':'}{p.column:>2}",
-            f"{p.desc:<40}",
-            f"{'['}{p.rule}{']'}"
-        )
-    if len(yaml_lint_list) == 0:
-        print("✅ Sem inconsistências de formatação.\n")
+        p_print = str
+        p_print = f"\t{p_level}" + f"{p.line:>4}{':'}{p.column:>2}" + f"{p.desc:<40}" + f"{'('}{p.rule}{')'}"
+        yaml_lint_list.append(p_print)
     return yaml_lint_list
 
 def f_schema(f):
@@ -114,7 +101,20 @@ Informar um caminho relativo de pasta ou nomes de arquivos/ficheiros:
             filelist = args
         for file in filelist:
             try:
+                title = parse_metadata(file)['title']
+                print(f"""
+-------------------------------------------------------------------------------
+{title.upper():^79s}
+
+📄 {file}
+    """)
                 f_lint(file)
+                if f_lint(file) == []:
+                    print("✅ Sem inconsistências de formatação.\n")
+                else:
+                    print("Relatório de inconsistências de formatação:\n")
+                    for p in f_lint(file):
+                        print(p)
                 metadata = f_read(file)['metadata']
                 f_schema(metadata)
             except Exception as e:
