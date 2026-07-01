@@ -1,4 +1,5 @@
 id: str(matches=regex(r'^([2-9CFGHJMPQRVWX]{8})\+([2-9CFGHJMPQRVWX]{3})$', name='OLC Plus Code 11')) # lido:recordID
+excerpt: str()
 date: day(min='2022-01-01') # lido:recordMetadataDate
 author: regex('([0-9X]{4})-([0-9X]{4})-([0-9X]{4})-([0-9X]{4})', name='ORCID')
 title: str(min=3, max=75)
@@ -8,6 +9,7 @@ tags: list(str(), required=False) # Simpler replacement for lido:classification 
 workType: list(include('typed_refs'), max=7)
 classifications: list(include('classification'), required=False)
 spatial: list(include('place'))
+repository: list(include('repository'), required=False)
 locationHistoric: list(include('location_historic'), required=False)
 identifiers: list(include('identifier'), required=False) # lido:publishedID
 titles: list(include('alternate_title'), required=False)
@@ -30,6 +32,7 @@ resources: list(include('resource'), required=False)
 header:
   teaser: include('url', required=False)
   overlay_image:  include('url', required=False)
+  caption: str(required=False)
 ---
 url: regex(r'^https?:\/\/(?:([\w\-]+\.)+[\w\-]+)(?:\/[^\s]*)?$', name='URL')
 
@@ -55,9 +58,13 @@ place:
   type: enum('site', 'formerSite', 'intended', 'other', required=False)
   display: str(required=False)
   term: include('typed_refs', required=False)
-  repository: include('legal_body', required=False)
   location: include('gml_point')
   extent: list('gml_poly', required=False)
+
+repository:
+  type: enum('site', 'formerSite', 'intended', 'other', required=False)
+  display: str(required=False)
+  name: include('legal_body', required=False)
 
 location_historic:
   type: enum("corporate", "geographic", "personal", "other")
