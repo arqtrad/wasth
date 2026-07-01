@@ -24,17 +24,38 @@ def test_input(testfile):
         print("O documento de teste não contém inconsistências de formatação.")
 
 def test_normalize_metadata(testfile):
+    import frontmatter
+    source = frontmatter.load(testfile)
+    normalized = wasth.normalize.NormalizedWork(testfile)
+    post = normalized.post()
+    assert isinstance(source['bibliographicCitation'], dict)
+    assert isinstance(post['bibliographicCitation'], list)
+
+def test_id(testfile, output_file):
+    normalized = wasth.normalize.NormalizedWork(testfile)
+    post = normalized.post()
+    locations = normalized.locations(post)
+    encoded_id = normalized.encode_id(post, locations)
+    normalized.write_id(post, encoded_id)
+    assert post['id'] == '58PJ98HQ+89W'
+
+def test_write(testfile, output_file):
     if os.path.isdir('testdata/out'):
         shutil.rmtree('testdata/out')
     normalized = wasth.normalize.NormalizedWork(testfile)
-    filename = os.path.basename(testfile)
-    wasth.normalize.write_file(normalized.post(), 'testdata/out', filename)
+    post = normalized.post()
+    wasth.normalize.write_file(post, 'testdata/out', os.path.basename(testfile))
     try:
         assert os.path.isfile(output_file)
     except Exception as e:
         print(e)
+    finally:
+        os.remove(output_file)
 
-def lint_metadata(output_file):
+def lint_metadata(testfile, output_file):
+    normalized = wasth.normalize.NormalizedWork(testfile)
+    post = normalized.post()
+    wasth.normalize.write_file(post, 'testdata/out', os.path.basename(testfile))
     yaml_lint_list = wasth.valida_yaml.f_lint(output_file)
     try:
         assert len(yaml_lint_list) == 0
@@ -44,3 +65,5 @@ def lint_metadata(output_file):
         print(f"{e}")
     except:
         print("Os metadados ainda contêm inconsistências de formatação.")
+    finally:
+        os.remove(output_file)
