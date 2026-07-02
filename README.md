@@ -15,12 +15,13 @@ A plataforma de teste deste aplicativo deve ser configurada com [UV]:
 
 ```
 uv sync
+uv pip install -e .
 uv run pytest
 uv run src/wasth/valida_yaml.py [PATH...]
 ```
 
-No momento, apenas `src/wasth/valida_yaml.py` e `src/wasth/valida_xml.py` 
-funcionam parcialmente.
+No momento, apenas `wasth.normalize`,
+`wasth.valida_yaml` e `wasth.valida_xml` funcionam parcialmente.
 `[PATH]` é relativo ao diretório de execução do comando e
 aceita uma sequência de nomes de arquivos `*.md` separados por espaços
 ou um nome de pasta contendo um ou mais arquivos.

@@ -15,7 +15,13 @@ yaml = YAML(typ='safe')
 # import pandas as pd
 # import geopandas as gpd
 
-def f_read(f, mode='r', enc="utf-8") -> dict:
+class ValidaYAML:
+    """Ainda não faz nada, migrar funções para cá dentro."""
+    def __init__(self, input_path: str, encoding='utf-8') -> None:
+        self.f = input_path
+        self.enc = encoding
+
+def f_read(f, enc="utf-8") -> dict:
     """Lê o arquivo/ficheiro se ele não estiver vazio"""
     with open(f, 'r', encoding=enc) as f:
         contents = f.read().split('\n---\n\n', 2)
@@ -65,7 +71,7 @@ def f_schema(f):
     """Deve receber o frontmatter extraído de f_read"""
     import yamale
     dir = os.path.abspath(os.path.dirname(__file__))
-    with open(os.path.join(dir, '../data/schema.yaml'), 'r') as schema_file:
+    with open(os.path.join(dir, 'data/schema.yaml'), 'r') as schema_file:
         schema = schema_file.read()
     schema = yamale.make_schema(content=schema, parser='ruamel')
     data = yamale.make_data(content=f, parser='ruamel')
@@ -103,8 +109,8 @@ Informar um caminho relativo de pasta ou nomes de arquivos/ficheiros:
         print("Operação cancelada")
     return filelist
 
-if __name__ == "__main__":
-    files = filelist(sys.argv)
+def f_validate(files: list[str]) -> int:
+    had_error = False
     for file in files:
         try:
             title = parse_metadata(file)['title']
@@ -114,18 +120,29 @@ if __name__ == "__main__":
 
 📄 {file}
 """)
-            f_lint(file)
-            if f_lint(file) == []:
+            lint_result = f_lint(file)
+            if lint_result == []:
                 print("✅ Sem inconsistências de formatação.\n")
             else:
                 print("Relatório de inconsistências de formatação:\n")
-                for p in f_lint(file):
+                for p in lint_result:
                     print(p)
             metadata = f_read(file)['metadata']
             f_schema(metadata)
         except Exception as e:
+            had_error = True
             print(f"""
 -------------------------------------------------------------------------------
 
 🚫 Não foi possível ler {file}:""")
             print('  ' + str(e))
+    return 1 if had_error else 0
+
+def main(args: list[str] | None = None) -> int:
+    if args is None:
+        args = sys.argv
+    files = filelist(args)
+    return f_validate(files)
+
+if __name__ == "__main__":
+    raise SystemExit(main())
