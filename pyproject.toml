@@ -1,6 +1,6 @@
 [project]
 name = "wasth"
-version = "0.1.0"
+version = "0.2.0"
 description = "Web App para a documentação de Sítios Tradicionais e Históricos"
 readme = "README.md"
 authors = [
