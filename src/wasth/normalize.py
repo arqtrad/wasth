@@ -1,6 +1,7 @@
 """Limpeza na formatação das fichas
 
 Importa e reexporta o conteúdo das fichas para limpar a formatação.
+Realiza algumas conversões do esquema DCMI para LIDO.
 Não valida a estrutura do conteúdo.
 """
 
@@ -128,9 +129,9 @@ Informar um caminho de arquivo/ficheiro de entrada e uma pasta de saída:
             print("O segundo argumento não é uma pasta válida.")
             exit(1)
         result = { 'input': input_path, 'outdir': output_path }
-        return result
     else:
         print("Operação cancelada")
+    return result
 
 def write_file(post, dir, filename):
     try:
@@ -150,12 +151,17 @@ def write_file(post, dir, filename):
     except Exception as e:
         print(f"❌  Erro na escrita do arquivo '{dest}': {e}")
 
-if __name__ == "__main__":
-    args = read_write_paths(sys.argv)
-    normalized = NormalizedWork(args['input'])
-    filename = os.path.basename(args['input'])
+def main(args: list[str] | None = None) -> int:
+    if args is None:
+        args = sys.argv
+    files = read_write_paths(args)
+    normalized = NormalizedWork(files['input'])
+    filename = os.path.basename(files['input'])
     post = normalized.post()
     locations = normalized.locations(post)
     encoded_id = normalized.encode_id(post, locations)
     normalized.write_id(post, encoded_id)
     write_file(post, args['outdir'], filename)
+
+if __name__ == "__main__":
+    raise SystemExit(main())

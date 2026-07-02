@@ -89,7 +89,7 @@ def f_schema(f):
                 print('\t%s' % error)
         exit(1)
 
-def filelist(input) -> list:
+def filelist(input) -> list | None:
     if len(input) > 1:
         args = input[1:]
     else:
