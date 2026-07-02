@@ -8,8 +8,9 @@ import os
 import frontmatter
 import json
 import geopandas as gpd
+import wasth.normalize
 
-if __name__ == "__main__":
+def filelist(input) -> list | None:
     if len(sys.argv) > 1:
         args = sys.argv[1:]
     else:
@@ -25,7 +26,29 @@ Informar um caminho relativo de pasta ou nomes de arquivos/ficheiros:
             ]
         elif os.path.isfile(args[0]):
             filelist = args
-        for file in filelist:
-            pass
     else:
         print("Operação cancelada")
+    return filelist
+
+def frontmatter(file, enc='utf-8') -> dict:
+    with open(file, 'r', encoding=enc) as f:
+        post = frontmatter.load(f)
+    return post['metadata']
+
+def md2geojson(dict) -> dict:
+    pass
+
+def f_write(dict) -> None:
+    pass
+
+def main(args: list[str] | None = None) -> int:
+    if args is None:
+        args = sys.argv
+    files = filelist(args)
+    posts = []
+    for f in files:
+        posts.append(frontmatter(f))
+    f_write(md2geojson(posts))
+
+if __name__ == "__main__":
+    raise SystemExit(main())
