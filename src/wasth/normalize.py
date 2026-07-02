@@ -21,7 +21,12 @@ class NormalizedWork:
         self.enc = encoding
 
     def post(self) -> frontmatter.Post:
-        """Processa metadados e faz algumas correções de estrutura"""
+        """Processa metadados e faz algumas correções de estrutura
+
+- bibliographicCitation de map para lista
+- root:coverage:spatial para root:spatial
+- spatial:location de map para lista
+- spatial:locationHistoric para root:locationHistoric"""
         with open(self.inp, 'r', encoding=self.enc) as f:
             post = frontmatter.load(f)
 
@@ -69,10 +74,7 @@ class NormalizedWork:
         return normalized_content
 
     def locations(self, post: frontmatter.Post) -> list[dict[str, str | int | float]]:
-        """Valida valores do georreferenciamento:
-
-1. Normaliza root:coverage:spatial para root:spatial
-2. Normaliza spatial:location para lista"""
+        """Valida valores do georreferenciamento"""
         locations = []
         for place in post['spatial']:
             place_type = place['type']
