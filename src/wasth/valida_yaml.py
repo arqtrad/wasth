@@ -8,12 +8,6 @@ import os
 import frontmatter
 from ruamel.yaml import YAML
 yaml = YAML(typ='safe')
-# import datetime
-# import json
-# import jq
-# import yq
-# import pandas as pd
-# import geopandas as gpd
 
 def f_read(f, enc="utf-8") -> dict:
     """Lê o arquivo/ficheiro se ele não estiver vazio"""
