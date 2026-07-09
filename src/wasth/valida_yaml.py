@@ -15,12 +15,6 @@ yaml = YAML(typ='safe')
 # import pandas as pd
 # import geopandas as gpd
 
-class ValidaYAML:
-    """Ainda não faz nada, migrar funções para cá dentro."""
-    def __init__(self, input_path: str, encoding='utf-8') -> None:
-        self.f = input_path
-        self.enc = encoding
-
 def f_read(f, enc="utf-8") -> dict:
     """Lê o arquivo/ficheiro se ele não estiver vazio"""
     with open(f, 'r', encoding=enc) as f:
@@ -109,7 +103,7 @@ Informar um caminho relativo de pasta ou nomes de arquivos/ficheiros:
         print("Operação cancelada")
     return filelist
 
-def f_validate(files: list[str]) -> int:
+def f_valida(files: list[str]) -> int:
     had_error = False
     for file in files:
         try:
@@ -142,7 +136,7 @@ def main(args: list[str] | None = None) -> int:
     if args is None:
         args = sys.argv
     files = filelist(args)
-    return f_validate(files)
+    return f_valida(files)
 
 if __name__ == "__main__":
     raise SystemExit(main())
