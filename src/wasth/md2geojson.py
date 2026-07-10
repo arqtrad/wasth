@@ -7,7 +7,6 @@ Não temos previsão de implementar o caminho inverso
 
 import sys
 import os
-import frontmatter
 import geojson
 import geopandas as gpd
 import wasth.normalize as norm
@@ -32,31 +31,23 @@ Informar um caminho relativo de pasta ou nomes de arquivos/ficheiros:
         print("Operação cancelada")
     return filelist
 
-class GeoFeature:
-    def __init__(self, input_path: str, encoding='utf-8') -> geojson.Feature:
-        self.inp = input_path
-        self.enc = encoding
-        with open(self.inp, 'r', encoding=self.enc) as f:
-            post = frontmatter.load(f)
-        normalized = norm.NormalizedWork(post)
-        frontmatter = normalized['metadata']
-        for place in frontmatter['spatial']:
-            if place['type'] == 'site':
-                lon = place['type']['location']['lon']
-                lat = place['type']['location']['lat']
-                break
+def make_feature(post: norm.Work) -> geojson.Feature:
+    for place in post.get('spatial', []):
+        if place.get('type') == 'site':
+            lon = place.get('location', {}).get('lon')
+            lat = place.get('location', {}).get('lat')
+            break
+    if lon is not None and lat is not None:
         point = geojson.Point((lon, lat))
-        props = {}
-        props['name'] = frontmatter['title']
-        props['teaser'] = frontmatter['header']['teaser']
-        props['id'] = frontmatter['id']
-        feature = geojson.feature(geometry=point, properties=props)
-        return feature
+    props = {
+        'id': post.get('id'),
+        'name': post.get('title'),
+        'teaser': post.get('header', {}).get('teaser'),
+    }
+    feature = geojson.Feature(geometry=point, properties=props)
+    return feature
 
-    def valid_geojson(feature) -> None:
-        return geojson.is_valid(feature)
-
-def collect_features(features: list) -> geojson.FeatureCollection | None:
+def collect_features(features: list[geojson.Feature]) -> geojson.FeatureCollection | None:
     collection = geojson.FeatureCollection(features)
     return collection
 
@@ -82,12 +73,14 @@ def main(args: list[str] | None = None) -> int:
     if args is None:
         args = sys.argv
     files = filelist(args)
+    features = []
     for f in files:
-        feature = GeoFeature(f)
+        post = norm.NormalizedWork(f)
+        feature = make_feature(post)
         valid_geojson = feature.valid_geojson(feature)
         features.append(valid_geojson)
     collection = collect_features(features)
-    f_write(geojson.dumps(collection), sort_keys=True)
+    f_write(collection, sort_keys=True)
 
 if __name__ == "__main__":
     raise SystemExit(main())

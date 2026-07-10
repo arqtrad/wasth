@@ -2,7 +2,7 @@
 
 __version__ = "0.2.0"
 
-from .normalize import NormalizedWork
-from .valida_yaml import ValidaYAML
+from .normalize import Work
+from .valida_yaml import valida_yaml
 
-__all__ = ["NormalizedWork", "ValidaYAML"]
+__all__ = ["Work", "valida_yaml"]

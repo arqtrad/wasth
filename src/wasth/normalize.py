@@ -2,103 +2,141 @@
 
 Importa e reexporta o conteúdo das fichas para limpar a formatação.
 Realiza algumas conversões do esquema DCMI para LIDO.
-Não valida a estrutura do conteúdo.
+Valida a estrutura do conteúdo.
 """
 
 from copy import deepcopy
 import sys
 import os
-from pprint import pprint
 import frontmatter
 from ruamel.yaml import YAML
-import pandoc
+import yamale
+import geojson
 from wasth.geoprocess import OpenLocation
 yaml = YAML(typ='safe')
 
-class NormalizedWork:
-    def __init__(self, input_path: str, encoding='utf-8') -> None:
-        self.inp = input_path
-        self.enc = encoding
+class Work(frontmatter.Post):
+    """
+    Arcabouço dos dados e métodos das fichas de obras
 
-    def post(self) -> frontmatter.Post:
-        """Processa metadados e faz algumas correções de estrutura
+    Validação e correções embutidas.
+    """
+    def __init__(self, content: str = '', handler=None, **metadata) -> None:
+        super().__init__(content=content, handler=handler, **metadata)
+        self.normalize()
 
-- bibliographicCitation de map para lista
-- root:coverage:spatial para root:spatial
-- spatial:location de map para lista
-- spatial:locationHistoric para root:locationHistoric"""
-        with open(self.inp, 'r', encoding=self.enc) as f:
-            post = frontmatter.load(f)
+    @classmethod
+    def from_file(cls, f):
+        post = frontmatter.load(f)
+        return cls(content=post.content, handler=post.handler, **post.metadata)
 
-        if post['bibliographicCitation']['citekey']:
-            post['bibliographicCitation'] = [ post['bibliographicCitation']['citekey'] ]
+    def normalize(self):
+        """
+        Processa metadados e migra DCMI para LIDO:
 
-        if post['coverage']:
-            post['spatial'] = deepcopy(post['coverage']['spatial'])
-            post['temporal'] = deepcopy(post['coverage']['temporal'])
-            del post['coverage']
+        - bibliographicCitation de map para lista contendo apenas citekeys
+        - root:coverage:spatial para root:spatial
+        - root:coverage:temporal para root:temporal
+        - spatial:locationHistoric para root:locationHistoric
+        - spatial:location de map para lista
+        """
+        bibliographicCitation = self.get('bibliographicCitation')
+        if isinstance(bibliographicCitation, dict) and bibliographicCitation.get('citekey'):
+            self['bibliographicCitation'] = [
+                bibliographicCitation.get('citekey')
+            ]
+        elif isinstance(bibliographicCitation, list):
+            citekeys = []
+            for citation in bibliographicCitation:
+                if isinstance(citation, str) and citation:
+                    citekeys.append(citation if citation.startswith('@') else '@' + citation else)
+                elif isinstance(citation, dict) and isinstance(citation.get('relids'), str):
+                    citekeys.append(citation['relids'] if citation['relids'].startswith('@') else "@" + citation['relids'])
+                else:
+                    print(f"⚠️  O registro {citation} não contém um campo com chave de citação, ignorando...")
+            self['bibliographicCitation'] = citekeys or None
+        elif bibliographicCitation is None:
+            self['bibliographicCitation'] = None
+        else:
+            raise ValueError(
+                f"📖  {bibliographicCitation} não contém uma chave de citação."
+            )
 
-        if post['spatial']['location']:
-            post['locationHistoric'] = post['spatial']['location']['locationHistoric']
-            del post['spatial']['location']['locationHistoric']
+        coverage = self.get('coverage')
+        if isinstance(coverage, dict):
+            if coverage.get('spatial') is not None and self.get('spatial') is None:
+                self['spatial'] = deepcopy(coverage['spatial'])
+            if coverage.get('temporal') is not None and self.get('temporal') is None:
+                self['temporal'] = deepcopy(coverage['temporal'])
+            del self['coverage']
 
-            post['tmp'] = {}
-            post['tmp']['type'] = 'site'
-            post['tmp']['display'] = post['spatial']['location']['name']['text'] + '\n' + post['spatial']['location']['city']
-            post['tmp']['term'] = post['spatial']['location']['state']
-            del post['spatial']['location']['name']
-            del post['spatial']['location']['city']
-            del post['spatial']['location']['state']
-            del post['spatial']['location']['country']
+        spatial = self.get('spatial')
+        if isinstance(spatial, dict):
+            extent = spatial.get('extent', {})
+            if isinstance(extent, dict) and extent.get('type') is not None:
+                fp_props = {}
+                if extent['type'] == 'Polygon':
+                    fp_geom = geojson.Polygon(extent['coordinates'])
+                elif extent['type'] == 'MultiPolygon':
+                    fp_geom = geojson.MultiPolygon(extent['coordinates'])
+                if isinstance(extent['projection'], str) and extent['projection'] == 'EPSG:4326 WGS84':
+                    fp_props['srsName'] = {}
+                    fp_props['srsName']['type'] = 'uri'
+                    fp_props['srsName']['refid'] = 'http://www.opengis.net/def/crs/EPSG/0/4326'
+                    fp_props['srsName']['display'] = extent['projection']
+                footprint = geojson.Feature(geometry=fp_geom, properties=fp_props)
 
-            post['tmp']['location'] = deepcopy(post['spatial']['location'])
-            del post['spatial']['location']
-            if post['tmp']['location']['long']:
-                post['tmp']['location']['lon'] = post['tmp']['location']['long']
-                del post['tmp']['location']['long']
+            location = spatial.get('location', {})
+            if location.get('locationHistoric') is not None:
+                self['locationHistoric'] = location['locationHistoric']
+                del self['spatial']['location']['locationHistoric']
 
+            if location.get('name') is not None:
+                self['tmp'] = {}
+                self['tmp']['type'] = 'site'
+                self['tmp']['display'] = self.get('spatial', {}).get('location', {}).get('name', {}).get('text') + '\n' + self.get('spatial', {}).get('location', {}).get('city')
+                self['tmp']['term'] = self.get('spatial', {}).get('location', {}).get('state')
+                del self['spatial']['location']['name']
+                del self['spatial']['location']['city']
+                del self['spatial']['location']['state']
+                del self['spatial']['location']['country']
 
-            post['spatial'] = [ deepcopy(post['tmp']) ]
-            del post['tmp']
+                self['tmp']['location'] = deepcopy(self.get('spatial', {}).get('location'))
+                del self['spatial']['location']
+                if self.get('tmp', {}).get('location', {}).get('long') is not None:
+                    self['tmp']['location']['lon'] = self['tmp']['location']['long']
+                    self['tmp']['location']['lat'] = self['tmp']['location']['lat']
+                    del self['tmp']['location']['long']
+                    del self['tmp']['location']['lat']
 
-        return post
+                self['spatial'] = [ deepcopy(self['tmp']) ]
+                del self['tmp']
 
-    def metadata(self, post: frontmatter.Post) -> dict:
-        metadata = post['metadata']
-        return metadata
-
-    def content(self, post: frontmatter.Post) -> str | None:
-        content = post['content']
-        ast = pandoc.read(content)
-        normalized_content = pandoc.write(ast)
-        return normalized_content
-
-    def locations(self, post: frontmatter.Post) -> list[dict[str, str | int | float]]:
+    def locations(self) -> geojson.FeatureCollection | None:
         """Valida valores do georreferenciamento"""
-        locations = []
+        if post.get('spatial'):
+            locations = []
+        else:
+            raise ValueError("🌐❌  A obra não está georreferenciada.")
         for place in post['spatial']:
             place_type = place['type']
             lat = place['location']['lat']
             lon = place['location']['lon']
-            if not isinstance(lat, (int, float)):
-                raise TypeError(f"{lat} não é uma latitude válida")
-            elif not isinstance(lon, (int, float)):
-                raise TypeError(f"{lon} não é uma longitude válida")
-            elif (lat < -90) or (lat > 90):
-                raise ValueError(f"Latitude '{lat}' deve ser um número decimal entre -90 e 90")
-            elif (lon < -180) or (lon > 180):
-                raise ValueError(f"Longitude '{lon}' deve ser um número decimal entre -180 e 180")
+            location = geojson.Feature(geometry=geojson.Point((lon, lat)), properties={'type': place_type})
+            if location.is_valid:
+                locations.append(location)
             else:
-                locations.append({'type': place_type, 'lat': lat, 'lon': lon})
-        return locations
+                raise ValueError(f"🌐❌  Dados de georreferenciamento inválidos: {location.errors()}")
+        features = geojson.FeatureCollection(locations)
+        return features
 
-    def encode_id(self, post: frontmatter.Post, locations: list[dict[str, str | int | float]]) -> str | None:
+    def encode_id(self, post: frontmatter.Post, locations: geojson.FeatureCollection) -> str | None:
         if post.get('id'):
             current_id = post['id']
         else:
             current_id = None
         for location in locations:
-            if location['type'] == 'site':
+            if location['properties']['type'] == 'site':
                 lat = location['lat']
                 lon = location['lon']
                 open_location = OpenLocation(current_id, lat, lon)
@@ -116,21 +154,27 @@ def read_write_paths(input) -> dict | None:
         args = input[1:]
     else:
         args = input("""
-Informar um caminho de arquivo/ficheiro de entrada e uma pasta de saída:
+Informar um caminho de arquivo/ficheiro ou pasta de leitura
+e uma pasta de saída:
 (deixar em branco cancela a operação)
 """).split()
     if args:
         if os.path.isfile(args[0]):
-            input_path = args[0]
+            filelist = [ args[0] ]
+        elif os.path.isdir(args[0]):
+            filelist = [
+                os.path.join(args[0], f) for f in os.listdir(args[0])
+                if os.path.isfile(os.path.join(args[0], f))
+            ]
         else:
-            print("O primeiro argumento não é um arquivo válido.")
+            print("O primeiro argumento não é válido.")
             exit(1)
         if not os.path.isfile(args[1]):
             output_path = args[1]
         else:
             print("O segundo argumento não é uma pasta válida.")
             exit(1)
-        result = { 'input': input_path, 'outdir': output_path }
+        result = { 'input': filelist, 'outdir': output_path }
     else:
         print("Operação cancelada")
     return result
@@ -153,17 +197,19 @@ def write_file(post, dir, filename):
     except Exception as e:
         print(f"❌  Erro na escrita do arquivo '{dest}': {e}")
 
-def main(args: list[str] | None = None) -> int:
+def main(args: dict[list, str] | None = None) -> int:
     if args is None:
         args = sys.argv
     files = read_write_paths(args)
-    normalized = NormalizedWork(files['input'])
-    filename = os.path.basename(files['input'])
-    post = normalized.post()
-    locations = normalized.locations(post)
-    encoded_id = normalized.encode_id(post, locations)
-    normalized.write_id(post, encoded_id)
-    write_file(post, args['outdir'], filename)
+    output_dir = files['outdir']
+    for file in files['input']:
+        normalized = Work(file)
+        filename = os.path.basename(file)
+        post = normalized.post()
+        locations = normalized.locations(post)
+        encoded_id = normalized.encode_id(post, locations)
+        normalized.write_id(post, encoded_id)
+        write_file(post, output_dir, filename)
 
 if __name__ == "__main__":
     raise SystemExit(main())

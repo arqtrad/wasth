@@ -14,14 +14,7 @@ locationHistoric: list(include('location_historic'), required=False)
 identifiers: list(include('identifier'), required=False) # lido:publishedID
 titles: list(include('alternate_title'), required=False)
 inscriptions: list(include('inscription'), required=False)
-format:
-  extent:
-    display: str(required=False)
-    measurements: list(include('size'), required=False)
-  medium:
-    display: str(required=False)
-    material: list(include('material_tech'), required=False)
-    technique: list(include('material_tech'), required=False)
+format: include('format_map', required=False)
 events: list(include('event'), required=False)
 subject: list(include('topic'), required=False)
 relation: list(include('object'), required=False)
@@ -29,10 +22,7 @@ work_rights: list(include('right'), required=False)
 record_rights: list(include('right'))
 collection: list(include('typed_refs'), required=False) # Provisional
 resources: list(include('resource'), required=False)
-header:
-  teaser: include('url', required=False)
-  overlay_image:  include('url', required=False)
-  caption: str(required=False)
+header: include('header_map', required=False)
 ---
 url: regex(r'^https?:\/\/(?:([\w\-]+\.)+[\w\-]+)(?:\/[^\s]*)?$', name='URL')
 
@@ -59,7 +49,7 @@ place:
   display: str(required=False)
   term: include('typed_refs', required=False)
   location: include('gml_point')
-  extent: list('gml_poly', required=False)
+  extent: include('gml_poly', required=False)
 
 repository:
   type: enum('site', 'formerSite', 'intended', 'other', required=False)
@@ -80,7 +70,7 @@ gml_point:
   source: include('legal_body')
 
 gml_poly:
-  type: enum("Polygon", "LineString")
+  type: enum("Polygon", "MultiPolygon", "LineString")
   coordinates: str()
   srsName: include('typed_refs', required=False)
   source: include('legal_body')
@@ -103,6 +93,19 @@ inscription:
 transcription:
   lang: regex('^[a-zA-Z-]+$', min=2)
   text: str()
+
+format_map:
+  extent: include('extent_map', required=False)
+  medium: include('medium_map', required=False)
+
+extent_map:
+  display: str(required=False)
+  measurements: list(include('size'), required=False)
+
+medium_map:
+  display: str(required=False)
+  material: list(include('material_tech'), required=False)
+  technique: list(include('material_tech'), required=False)
 
 size:
   type: include('lido_term') # http://terminology.lido-schema.org/objectMeasurementsSet_type
@@ -210,3 +213,8 @@ media:
   alt: str(min=2, required=False)
   credit: str(required=False)
   rights: list(include('right'), required=False)
+
+header_map:
+  teaser: include('url', required=False)
+  overlay_image:  include('url', required=False)
+  caption: str(required=False)
