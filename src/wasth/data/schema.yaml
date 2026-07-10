@@ -26,6 +26,8 @@ header: include('header_map', required=False)
 ---
 url: regex(r'^https?:\/\/(?:([\w\-]+\.)+[\w\-]+)(?:\/[^\s]*)?$', name='URL')
 
+coordinates: regex('^[0-9,\.\[\] ]+$', name='coordinates')
+
 lido_term: regex('^http://terminology.lido-schema.org/lido([0-9]{5})$', name="LIDO Terminology")
 
 typed_refs:
@@ -50,6 +52,9 @@ place:
   term: include('typed_refs', required=False)
   location: include('gml_point')
   extent: include('gml_poly', required=False)
+  srsName: include('typed_refs', required=False)
+  source: include('legal_body')
+  zoom: int(min=0, max=18, required=False)
 
 repository:
   type: enum('site', 'formerSite', 'intended', 'other', required=False)
@@ -65,15 +70,10 @@ gml_point:
   lat: num(min=-90, max=90)
   lon: num(min=-180, max=180)
   alt: num(min=0, max=10000, required=False)
-  zoom: int(min=0, max=18, required=False)
-  srsName: include('typed_refs', required=False)
-  source: include('legal_body')
 
 gml_poly:
   type: enum("Polygon", "MultiPolygon", "LineString")
-  coordinates: str()
-  srsName: include('typed_refs', required=False)
-  source: include('legal_body')
+  coordinates: include('coordinates')
 
 identifier:
   term: include('typed_refs')

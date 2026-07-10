@@ -37,7 +37,8 @@ class Work(frontmatter.Post):
         - bibliographicCitation de map para lista contendo apenas citekeys
         - root:coverage:spatial para root:spatial
         - root:coverage:temporal para root:temporal
-        - spatial:locationHistoric para root:locationHistoric
+        - spatial:location:locationHistoric para root:locationHistoric
+        - spatial:extent de map para lista
         - spatial:location de map para lista
         """
         bibliographicCitation = self.get('bibliographicCitation')
@@ -71,48 +72,58 @@ class Work(frontmatter.Post):
             del self['coverage']
 
         spatial = self.get('spatial')
+        places = []
         if isinstance(spatial, dict):
-            extent = spatial.get('extent', {})
-            if isinstance(extent, dict) and extent.get('type') is not None:
-                fp_props = {}
-                if extent['type'] == 'Polygon':
-                    fp_geom = geojson.Polygon(extent['coordinates'])
-                elif extent['type'] == 'MultiPolygon':
-                    fp_geom = geojson.MultiPolygon(extent['coordinates'])
-                if isinstance(extent['projection'], str) and extent['projection'] == 'EPSG:4326 WGS84':
-                    fp_props['srsName'] = {}
-                    fp_props['srsName']['type'] = 'uri'
-                    fp_props['srsName']['refid'] = 'http://www.opengis.net/def/crs/EPSG/0/4326'
-                    fp_props['srsName']['display'] = extent['projection']
-                footprint = geojson.Feature(geometry=fp_geom, properties=fp_props)
-
             location = spatial.get('location', {})
             if location.get('locationHistoric') is not None:
                 self['locationHistoric'] = location['locationHistoric']
                 del self['spatial']['location']['locationHistoric']
 
             if location.get('name') is not None:
-                self['tmp'] = {}
-                self['tmp']['type'] = 'site'
-                self['tmp']['display'] = self.get('spatial', {}).get('location', {}).get('name', {}).get('text') + '\n' + self.get('spatial', {}).get('location', {}).get('city')
-                self['tmp']['term'] = self.get('spatial', {}).get('location', {}).get('state')
+                location_migration = {}
+                location_migration['type'] = 'site'
+                location_migration['display'] = self.get('spatial', {}).get('location', {}).get('name', {}).get('text') + '\n' + self.get('spatial', {}).get('location', {}).get('city')
+                location_migration['term'] = self.get('spatial', {}).get('location', {}).get('state')
                 del self['spatial']['location']['name']
                 del self['spatial']['location']['city']
                 del self['spatial']['location']['state']
                 del self['spatial']['location']['country']
-
-                self['tmp']['location'] = deepcopy(self.get('spatial', {}).get('location'))
+                location_migration['location'] = deepcopy(location)
+                if location_migration.get('long') is not None:
+                    location_migration['location']['lon'] = location_migration['location']['long']
+                    location_migration['location']['lat'] = location_migration['location']['lat']
+                    del location_migration['location']['long']
+                    del location_migration['location']['lat']
+                places.append(location_migration)
                 del self['spatial']['location']
-                if self.get('tmp', {}).get('location', {}).get('long') is not None:
-                    self['tmp']['location']['lon'] = self['tmp']['location']['long']
-                    self['tmp']['location']['lat'] = self['tmp']['location']['lat']
-                    del self['tmp']['location']['long']
-                    del self['tmp']['location']['lat']
 
-                self['spatial'] = [ deepcopy(self['tmp']) ]
-                del self['tmp']
+            extent = spatial.get('extent', {})
+            if isinstance(extent, dict) and extent.get('coordinates') is not None:
+                place_footprint = {}
+                place_footprint['type'] = 'site'
+                place_footprint['extent'] = {}
+                place_footprint['extent']['type'] = extent['type']
+                place_footprint['extent']['coordinates'] = extent['coordinates']
+                if isinstance(extent['projection'], str) and extent['projection'] == 'EPSG:4326 WGS84':
+                    place_srsName = {}
+                    place_srsName['type'] = 'uri'
+                    place_srsName['refid'] = 'http://www.opengis.net/def/crs/EPSG/0/4326'
+                    place_srsName['display'] = extent['projection']
+                place_footprint['srsName'] = place_srsName
+                if extent.get('source') is not None:
+                    place_footprint['source'] = {}
+                    place_footprint['source']['display'] = extent['source']
+                    place_footprint['source']['type'] = 'corporate'
+                places.append(place_footprint)
+                del self['spatial']['extent']
 
-    def locations(self) -> geojson.FeatureCollection | None:
+                if extent['type'] == 'Polygon':
+                    fp_geom = geojson.Polygon(extent['coordinates'])
+                elif extent['type'] == 'MultiPolygon':
+                    fp_geom = geojson.MultiPolygon(extent['coordinates'])
+                footprint = geojson.Feature(geometry=fp_geom, properties=fp_props)
+
+    def places(self) -> geojson.FeatureCollection | None:
         """Valida valores do georreferenciamento"""
         if post.get('spatial'):
             locations = []
@@ -127,8 +138,8 @@ class Work(frontmatter.Post):
                 locations.append(location)
             else:
                 raise ValueError(f"🌐❌  Dados de georreferenciamento inválidos: {location.errors()}")
-        features = geojson.FeatureCollection(locations)
-        return features
+        places = geojson.FeatureCollection(locations)
+        return places
 
     def encode_id(self, post: frontmatter.Post, locations: geojson.FeatureCollection) -> str | None:
         if post.get('id'):
