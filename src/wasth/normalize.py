@@ -107,26 +107,26 @@ def normalize(post: frontmatter.Post) -> frontmatter.Post:
         post['spatial'] = deepcopy(places) if places else None
         return post
 
-def paths(reader=input) -> dict[list[str], str] | None:
-    text = reader(
-        """
-        Informar um caminho de arquivo/ficheiro ou pasta de leitura
-        e uma pasta de saída:
-        (deixar em branco cancela a operação)
-        """
-    ).strip()
-    if text:
-        args = text.split()
-        if len(args) == 2:
-            source, output_dir = args
+def paths(args: list | None = None) -> dict[list[str], str] | None:
+    if not args:
+        if len(sys.argv) == 3:
+            args = sys.argv[1:]
         else:
-            raise ValueError("Informar dois argumentos.")
+            text = input(
+                """
+                Informar um caminho de arquivo/ficheiro ou pasta de leitura
+                e uma pasta de saída:
+                (deixar em branco cancela a operação)
+                """
+            ).strip()
+            args = text.split()
+    if len(args) == 2:
+        source, output_dir = args
     else:
-        print("Operação cancelada")
-        return None
+        raise ValueError("Informar dois argumentos.")
 
-    if os.path.isfile(source):
-        filelist = [source]
+    if os.path.isfile(source) and Path(source).suffix.lower() == ".md":
+        filelist = [ source ]
     elif os.path.isdir(source):
         filelist = [
             os.path.join(source, f)
