@@ -77,7 +77,7 @@ def f_schema(f):
                 print('\t%s' % error)
         exit(1)
 
-def filelist(input) -> list | None:
+def filelist(input) -> list[str] | None:
     if len(input) > 1:
         args = input[1:]
     else:
@@ -92,7 +92,7 @@ Informar um caminho relativo de pasta ou nomes de arquivos/ficheiros:
                 if os.path.isfile(os.path.join(args[0], f))
             ]
         elif os.path.isfile(args[0]):
-            filelist = args
+            filelist = [args[0]]
     else:
         print("Operação cancelada")
     return filelist

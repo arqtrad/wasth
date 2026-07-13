@@ -75,7 +75,7 @@ def main(args: list[str] | None = None) -> int:
     files = filelist(args)
     features = []
     for f in files:
-        post = norm.NormalizedWork(f)
+        post = norm.Work(f)
         feature = make_feature(post)
         valid_geojson = feature.valid_geojson(feature)
         features.append(valid_geojson)

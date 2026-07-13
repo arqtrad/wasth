@@ -1,7 +1,10 @@
 from glob import glob
 import os
 import pytest
-import wasth.md2geojson
+import geojson
+import frontmatter
+import wasth.md2geojson as md2geojson
+import wasth.normalize as norm
 
 @pytest.fixture
 def testfile():
@@ -18,5 +21,7 @@ def output_file():
     f = "testdata/test.geojson"
     return f
 
-def test_md2geojson(input_dir, output_file):
-    pass
+def test_md2geojson(testfile):
+    post = norm.NormalizedWork(testfile)
+    test_geofeature = md2geojson.make_feature(post)
+    assert isinstance(test_geofeature, geojson.Feature)
