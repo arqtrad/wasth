@@ -19,7 +19,7 @@ uv pip install -e .
 uv run wasth [PATH...]
 ```
 
-No momento, apenas `wasth` (alias para `wasth.valida_yaml`)
+No momento, apenas `wasth` (alias para `wasth.normalize`)
 `wasth.normalize`, e `wasth.valida_xml` funcionam parcialmente.
 `[PATH]` é relativo ao diretório de execução do comando e
 aceita uma sequência de nomes de arquivos `*.md` separados por espaços
@@ -29,10 +29,10 @@ ou um nome de pasta contendo um ou mais arquivos, dependendo do comando.
 ## Roteiro de desenvolvimento
 
 - [x] Lint formatação YAML;
-- [x] Valida cabeçalhos YAML das fichas contra esquema de preenchimento;
 - [x] Normaliza cabeçalhos YAML das fichas para sintaxe, não contra esquema;
+- [x] Valida cabeçalhos YAML das fichas contra esquema de preenchimento;
 - [x] Gera Open Location Code a partir de coordenadas;
-- [ ] Converte esquema DCMI para LIDO;
+- [ ] Converte bibliographiCitation DCMI para LIDO;
 - [ ] Valida fichas preenchidas contra especificação XSD do LIDO;
 - [ ] Interface de criação de novas fichas;
 - [ ] Interface de edição de fichas existentes;

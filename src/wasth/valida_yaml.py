@@ -8,18 +8,6 @@ import os
 import frontmatter
 from ruamel.yaml import YAML
 yaml = YAML(typ='safe')
-# import datetime
-# import json
-# import jq
-# import yq
-# import pandas as pd
-# import geopandas as gpd
-
-class ValidaYAML:
-    """Ainda não faz nada, migrar funções para cá dentro."""
-    def __init__(self, input_path: str, encoding='utf-8') -> None:
-        self.f = input_path
-        self.enc = encoding
 
 def f_read(f, enc="utf-8") -> dict:
     """Lê o arquivo/ficheiro se ele não estiver vazio"""
@@ -89,7 +77,7 @@ def f_schema(f):
                 print('\t%s' % error)
         exit(1)
 
-def filelist(input) -> list:
+def filelist(input) -> list[str] | None:
     if len(input) > 1:
         args = input[1:]
     else:
@@ -104,12 +92,12 @@ Informar um caminho relativo de pasta ou nomes de arquivos/ficheiros:
                 if os.path.isfile(os.path.join(args[0], f))
             ]
         elif os.path.isfile(args[0]):
-            filelist = args
+            filelist = [args[0]]
     else:
         print("Operação cancelada")
     return filelist
 
-def f_validate(files: list[str]) -> int:
+def f_valida(files: list[str]) -> int:
     had_error = False
     for file in files:
         try:
@@ -142,7 +130,7 @@ def main(args: list[str] | None = None) -> int:
     if args is None:
         args = sys.argv
     files = filelist(args)
-    return f_validate(files)
+    return f_valida(files)
 
 if __name__ == "__main__":
     raise SystemExit(main())
