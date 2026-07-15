@@ -3,14 +3,15 @@ excerpt: str()
 date: day(min='2022-01-01') # lido:recordMetadataDate
 author: regex('([0-9X]{4})-([0-9X]{4})-([0-9X]{4})-([0-9X]{4})', name='ORCID')
 title: str(min=3, max=75)
+# required=False enums will be given a default value at runtime
 title_type: enum("brandName", "cited", "creator", "descriptive", "former", "inscribed", "owner", "popular", "repository", "translated", "other", required=False)
 title_source: list(include('citation'), required=False)
-tags: list(str(), required=False) # Simpler replacement for lido:classification even though we lose classification_type
-workType: list(include('typed_refs'), max=7)
+work_type: list(include('typed_refs'), max=7)
 classifications: list(include('classification'), required=False)
+tags: list(str(), required=False) # Simple, provisional replacement for lido:classification
 spatial: list(include('place'))
 repository: list(include('repository'), required=False)
-locationHistoric: list(include('location_historic'), required=False)
+location_historic: list(include('historic_place'), required=False)
 identifiers: list(include('identifier'), required=False) # lido:publishedID
 titles: list(include('alternate_title'), required=False)
 inscriptions: list(include('inscription'), required=False)
@@ -23,6 +24,7 @@ record_rights: list(include('right'))
 collection: list(include('typed_refs'), required=False) # Provisional
 resources: list(include('resource'), required=False)
 header: include('header_map', required=False)
+# lido:description is the content of the Markdown document.
 ---
 url: regex(r'^https?:\/\/(?:([\w\-]+\.)+[\w\-]+)(?:\/[^\s]*)?$', name='URL')
 
@@ -31,10 +33,11 @@ coordinates: regex('^[0-9,\.\[\] ]+$', name='coordinates')
 lido_term: regex('^http://terminology.lido-schema.org/lido([0-9]{5})$', name="LIDO Terminology")
 
 typed_refs:
-  type: enum('local', 'iri', 'uri', required=False) # required=False enums will be given a default value at runtime
+  type: enum('local', 'iri', 'uri', required=False)
   concept: include('lido_term', required=False)
-  refid: str()
+  refid: str(required=False)
   display: str(required=False)
+  source: include('citation', required=False)
 
 citation:
   refid: regex(r'@[a-zA-Z0-9_][\w:.#$%&\-+?<>~\/]*', name='CSL citekey')
@@ -60,8 +63,9 @@ repository:
   type: enum('site', 'formerSite', 'intended', 'other', required=False)
   display: str(required=False)
   name: include('legal_body', required=False)
+  id: include('typed_refs', required=False)
 
-location_historic:
+historic_place:
   type: enum("corporate", "geographic", "personal", "other")
   term: include('typed_refs', required=False)
   display: str(required=False)
@@ -109,9 +113,9 @@ medium_map:
 
 size:
   type: include('lido_term') # http://terminology.lido-schema.org/objectMeasurementsSet_type
-  unit: include('typed_refs') # Provisional
-  value: num(min=0)
   extent: include('extent', required=False)
+  value: num(min=0)
+  unit: include('typed_refs') # Provisional
   qualifier: str(required=False) # Provisional
   format: str(required=False) # Provisional
   shape: str(required=False) # Provisional
@@ -180,7 +184,7 @@ resource:
   rights: list(include('right'))
 
 right:
-  type: include('typed_refs', required=False)
+  term: include('typed_refs', required=False)
   concept: enum('generic', 'specific', required=False) # http://terminology.lido-schema.org/rightsType_type
   temporal:
     earliest_date: day(required=False)

@@ -21,31 +21,32 @@ def normalize(post: frontmatter.Post) -> frontmatter.Post:
     - bibliographicCitation de map para lista contendo apenas citekeys
     - root:coverage:spatial para root:spatial
     - root:coverage:temporal para root:temporal
-    - spatial:location:locationHistoric para root:locationHistoric
+    - spatial:location:locationHistoric para root:location_historic
     - spatial:extent de map para lista
     - spatial:location de map para lista
+    - format:extent e spatial:extent normalizados para format:extent (lista)
     """
     bibliographicCitation = post.get('bibliographicCitation')
-    if isinstance(bibliographicCitation, dict) and bibliographicCitation.get('citekey'):
-        post['bibliographicCitation'] = [
-            bibliographicCitation.get('citekey')
-        ]
+    if isinstance(bibliographicCitation, dict):
+        if bibliographicCitation.get('citekey') is not None:
+            post['bibliographicCitation'] = [
+                bibliographicCitation.get('citekey')
+            ]
+        else:
+            raise ValueError(
+                f"📖  {bibliographicCitation} não contém uma chave de citação para {post['title'].upper()}."
+            )
     elif isinstance(bibliographicCitation, list):
         citekeys = []
         for citation in bibliographicCitation:
-            if isinstance(citation, str) and citation:
+            if isinstance(citation, str):
                 citekeys.append(citation if citation.startswith('@') else '@' + citation)
             elif isinstance(citation, dict) and isinstance(citation.get('relids'), str):
                 citekeys.append(citation['relids'] if citation['relids'].startswith('@') else "@" + citation['relids'])
             else:
                 print(f"⚠️  O registro {citation} não contém um campo com chave de citação, ignorando...")
-        post['bibliographicCitation'] = citekeys or None
-    elif bibliographicCitation is None:
-        post['bibliographicCitation'] = None
-    else:
-        raise ValueError(
-            f"📖  {bibliographicCitation} não contém uma chave de citação."
-        )
+        if len(citekeys) > 0:
+            post['bibliographicCitation'] = citekeys
 
     coverage = post.get('coverage')
     if isinstance(coverage, dict):
@@ -56,11 +57,33 @@ def normalize(post: frontmatter.Post) -> frontmatter.Post:
         del post['coverage']
 
     spatial = post.get('spatial')
+    format = post.get('format')
+    if format is not None:
+        format_extent = format.get('extent')
+        if isinstance(format_extent, list):
+            measurements = deepcopy(format_extent)
+        elif isinstance(spatial, dict) and isinstance(spatial.get('extent'), list):
+            measurements = deepcopy(spatial['extent'])
+        else:
+            measurements = []
+        if len(measurements) > 0:
+            for m in measurements:
+                m['extent'] = deepcopy(m.get('type'))
+                m['type'] = 'http://terminology.lido-schema.org/lido00927'
+                m['value'] = deepcopy(m.get('measurements'))
+                m['unit'] = { 'display': m.get('unit') } # Not schema-conforming
+                if m.get('measurements') is not None:
+                    del m['measurements']
+            if isinstance(format_extent, list):
+                post['format']['extent'] = {
+                    'measurements': measurements,
+                }
+
     places = []
     if isinstance(spatial, dict):
         location = spatial.get('location', {})
         if location.get('locationHistoric') is not None:
-            post['locationHistoric'] = location['locationHistoric']
+            post['location_historic'] = location['locationHistoric']
 
         if location.get('name') is not None:
             place_location = {
@@ -81,31 +104,32 @@ def normalize(post: frontmatter.Post) -> frontmatter.Post:
                 place_location['location']['lon'] = place_location['location'].pop('long')
             places.append(place_location)
 
-        extent = spatial.get('extent', {})
-        if isinstance(extent, dict) and extent.get('coordinates') is not None:
+        place_extent = spatial.get('extent', {})
+        if isinstance(place_extent, dict) and place_extent.get('coordinates') is not None:
             place_footprint = {
                 'type': 'site',
                 'extent': {
-                    'type': extent['type'],
-                    'coordinates': extent['coordinates']
+                    'type': place_extent['type'],
+                    'coordinates': str(place_extent['coordinates'])
+                    # Otherwise it interprets WKT coordinates as nested lists
                 },
             }
-            if isinstance(extent['projection'], str) and extent.get('projection') is not None:
+            if isinstance(place_extent['projection'], str) and place_extent.get('projection') is not None:
                 place_footprint['srsName'] = {
                     'type': 'uri',
-                    'display': extent['projection']
+                    'display': place_extent['projection']
                 }
-                if extent['projection'] == 'EPSG:4326 WGS84':
+                if place_extent['projection'] == 'EPSG:4326 WGS84':
                     place_footprint['srsName']['refid'] = 'http://www.opengis.net/def/crs/EPSG/0/4326'
-            if extent.get('source') is not None:
+            if place_extent.get('source') is not None:
                 place_footprint['source'] = {
-                    'display': extent['source'],
+                    'display': place_extent['source'],
                     'type': 'corporate'
                 }
             places.append(place_footprint)
 
         post['spatial'] = deepcopy(places) if places else None
-        return post
+    return post
 
 def paths(args: list | None = None) -> dict[list[str], str] | None:
     if not args:
@@ -139,6 +163,7 @@ def paths(args: list | None = None) -> dict[list[str], str] | None:
 
 def write_file(post: frontmatter.Post, output_dir: str, filename: str) -> None:
     try:
+        os.makedirs(output_dir, exist_ok=True)
         dest = os.path.join(output_dir, filename)
         frontmatter.dump(post, dest, sort_keys=False)
         print(f"📄  '{dest}' gravado com sucesso.")
@@ -148,8 +173,8 @@ def write_file(post: frontmatter.Post, output_dir: str, filename: str) -> None:
 def main(args: dict[list, str] | None = None) -> int | None:
     if args is None:
         args = paths()
-    if args is None:
-        return None
+        if args is None:
+            return None
     files = args['filelist']
     output_dir = args['output_dir']
     try:

@@ -9,6 +9,7 @@ import sys
 import os
 import geojson
 import geopandas as gpd
+import wasth
 import wasth.normalize as norm
 
 def filelist(input) -> list | None:
@@ -31,7 +32,7 @@ Informar um caminho relativo de pasta ou nomes de arquivos/ficheiros:
         print("Operação cancelada")
     return filelist
 
-def make_feature(post: norm.Work) -> geojson.Feature:
+def make_feature(post: wasth.Work) -> geojson.Feature:
     for place in post.get('spatial', []):
         if place.get('type') == 'site':
             lon = place.get('location', {}).get('lon')
@@ -75,7 +76,7 @@ def main(args: list[str] | None = None) -> int:
     files = filelist(args)
     features = []
     for f in files:
-        post = norm.Work(f)
+        post = wasth.Work(f)
         feature = make_feature(post)
         valid_geojson = feature.valid_geojson(feature)
         features.append(valid_geojson)
