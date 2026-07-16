@@ -14,8 +14,10 @@ dependencies = [
     "openlocationcode>=1.0.1",
     "pandoc>=2.4",
     "pydantic[email]>=2.13.4",
+    "pyorcid-checksum",
     "python-frontmatter>=1.3.0",
     "ruamel-yaml>=0.19.1",
+    "typer>=0.26.8",
     "xmlschema>=4.3.1",
     "xmltodict>=1.0.4",
     "yamale[ruamel]>=6.1.0",
@@ -23,7 +25,7 @@ dependencies = [
 ]
 
 [project.scripts]
-wasth = "wasth.normalize:main"
+wasth = "wasth.app:main"
 
 [build-system]
 requires = ["uv_build>=0.11.13,<0.12.0"]
@@ -36,3 +38,6 @@ dev = [
     "pytest-cov>=7.1.0",
     "ruff>=0.15.12",
 ]
+
+[tool.uv.sources]
+pyorcid-checksum = { git = "https://github.com/arqtrad/PyORCID-checker" }
