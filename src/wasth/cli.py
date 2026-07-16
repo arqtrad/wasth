@@ -1,11 +1,11 @@
-"""
-Acesso ao CLI do Typer (assistente de preenchimento das fichas)
+"""Acesso ao CLI do Typer (assistente de preenchimento das fichas)
 """
 
 from typing import Optional
 from typing import Annotated
 import typer
 from pyorcid_checksum import ORCID_Checksum
+from rich import print
 
 app = typer.Typer()
 
@@ -38,10 +38,10 @@ def main(
     """
     typer.echo(f"ORCiD {orcid} válido.")
     print("""
-------------------------------------------------------
+-------------------------------------------------------
  Interfaz de linha de comando da aplicação
- WASTH: Web App para Sítios Tradicionais e Históricos
-------------------------------------------------------
+ [bold]WASTH[/bold] : Web App para Sítios Tradicionais e Históricos
+-------------------------------------------------------
 
 Para instruções, digitar o comando:
 uv run typer src/wasth/app.py run --help

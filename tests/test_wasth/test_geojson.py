@@ -4,8 +4,8 @@ import pytest
 import geojson
 import frontmatter
 import wasth
-import wasth.normalize as norm
-import wasth.md2geojson as md2geojson
+import wasth.core.normalize as norm
+import wasth.core.md2geojson as md2geojson
 
 @pytest.fixture
 def testfile():

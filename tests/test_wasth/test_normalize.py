@@ -2,8 +2,8 @@ import os
 import shutil
 import pytest
 import frontmatter
-import wasth.valida_yaml
-import wasth.normalize as norm
+import wasth.core.valida_yaml
+import wasth.core.normalize as norm
 import yamllint.config
 import yamllint.linter
 

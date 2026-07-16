@@ -13,7 +13,6 @@ import frontmatter
 from ruamel.yaml import YAML
 yaml = YAML(typ='safe')
 
-
 def normalize(post: frontmatter.Post) -> frontmatter.Post:
     """
     Processa metadados e migra DCMI para LIDO:
