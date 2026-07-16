@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Pedro P. Palazzo", email = "palazzo@unb.br" }
 ]
-requires-python = ">=3.14"
+requires-python = ">=3.10"
 dependencies = [
     "defusedxml>=0.7.1",
     "geojson>=3.3.0",
