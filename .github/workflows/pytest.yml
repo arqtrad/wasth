@@ -50,5 +50,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install the project
         run: uv sync --locked --all-extras --dev
+      - name: Install package
+        run: uv pip install -e .
       - name: Run tests
         run: uv run pytest
