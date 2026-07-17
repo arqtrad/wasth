@@ -64,16 +64,11 @@ f":warning:  O registro {citation} não contém um campo com chave de citação,
         del post['coverage']
 
     spatial = post.get('spatial')
-    format = post.get('format')
-    if format is not None:
-        format_extent = format.get('extent')
-        if isinstance(format_extent, list):
+    post_format = post.get('format')
+    if post_format is not None:
+        format_extent = post_format.get('extent')
+        if format_extent is not None and isinstance(format_extent, list):
             measurements = deepcopy(format_extent)
-        elif isinstance(spatial, dict) and isinstance(spatial.get('extent'), list):
-            measurements = deepcopy(spatial['extent'])
-        else:
-            measurements = []
-        if len(measurements) > 0:
             for m in measurements:
                 m['extent'] = deepcopy(m.get('type'))
                 m['type'] = 'http://terminology.lido-schema.org/lido00927'
@@ -81,10 +76,21 @@ f":warning:  O registro {citation} não contém um campo com chave de citação,
                 m['unit'] = { 'display': m.get('unit') } # Not schema-conforming
                 if m.get('measurements') is not None:
                     del m['measurements']
-            if isinstance(format_extent, list):
-                post['format']['extent'] = {
-                    'measurements': measurements,
-                }
+            post['format']['extent'] = { 'measurements': measurements }
+
+    elif isinstance(spatial, dict) and isinstance(spatial.get('extent'), list):
+        measurements = deepcopy(spatial['extent'])
+        for m in measurements:
+            m['extent'] = deepcopy(m.get('type'))
+            m['type'] = 'http://terminology.lido-schema.org/lido00927'
+            m['value'] = deepcopy(m.get('measurements'))
+            m['unit'] = { 'display': m.get('unit') } # Not schema-conforming
+            if m.get('measurements') is not None:
+                del m['measurements']
+        post['format'] = post.get('format') or {}
+        post['format']['extent'] = {
+            'measurements': measurements,
+        }
 
     places = []
     if isinstance(spatial, dict):
@@ -180,7 +186,7 @@ def write_file(post: frontmatter.Post, output_dir: str, filename: str) -> None:
         frontmatter.dump(post, dest, sort_keys=False)
         print(f"📄  '{dest}' gravado com sucesso.")
     except Exception as e:
-        print(f"❌  Erro na escrita em '{dest}': {e}")
+        print(f":x:  Erro na escrita em '{dest}': {e}")
 
 def main(args: dict[list, str] | None = None) -> int | None:
     """Compila todos os arquivos/ficheiros a serem gravados."""
