@@ -1,11 +1,9 @@
-from glob import glob
-import os
 import pytest
 import geojson
 import frontmatter
 import wasth
 import wasth.core.normalize as norm
-import wasth.core.md2geojson as md2geojson
+from wasth.core import md2geojson
 
 @pytest.fixture
 def testfile():
@@ -14,14 +12,15 @@ def testfile():
 
 @pytest.fixture
 def input_dir():
-    dir = "testdata/casa"
-    return dir
+    d = "testdata/casa"
+    return d
 
 def test_md2geojson(testfile):
+    "Testa tipos de objetos retornados pelas funções"
     metadata = frontmatter.load(testfile)
     post = norm.normalize(metadata)
-    assert type(post) is frontmatter.Post
+    assert isinstance(post, frontmatter.Post)
     work = wasth.Work.from_post(post)
-    assert type(work) is wasth.Work
+    assert isinstance(work, wasth.Work)
     test_geofeature = md2geojson.make_feature(work)
     assert isinstance(test_geofeature, geojson.Feature)

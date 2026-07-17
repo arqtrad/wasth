@@ -5,31 +5,36 @@ import frontmatter
 import geojson
 from ruamel.yaml import YAML
 import yamale
-import openlocationcode.openlocationcode as openlocationcode
+from openlocationcode import openlocationcode
+from rich import print
 from .valida_yaml import f_valida
 yaml = YAML(typ='safe')
 
 class Work(frontmatter.Post):
     """
-    Arcabouço dos dados e métodos das fichas de obras
+    Arcabouço dos dados e métodos das fichas de obras.
     """
     def __init__(self, content: str = '', handler=None, **metadata) -> None:
         super().__init__(content=content, handler=handler, **metadata)
 
     @classmethod
     def from_file(cls, f):
+        """Gera o objeto a partir de um arquivo/ficheiro."""
         self = frontmatter.load(f)
         return cls(content=self.content, handler=self.handler, **self.metadata)
 
     @classmethod
     def from_post(cls, post: frontmatter.Post) -> Work:
+        """Gera o objeto a partir de um objeto frontmatter.Post"""
         return cls(content=post.content, handler=post.handler, **post.metadata)
 
     def places(self) -> geojson.FeatureCollection | None:
         """Cria geoJSON a partir de 'spatial'"""
         spatial = self.get('spatial')
         if not spatial:
-            raise ValueError("🌐❌  A obra não está georreferenciada.")
+            raise ValueError(
+                ":globe_with_meridians::w:  A obra não está georreferenciada."
+            )
         places = []
         for place in spatial:
             props = {
@@ -45,7 +50,9 @@ class Work(frontmatter.Post):
                 lon = location.get('lon')
                 alt = location.get('alt')
                 if lat is None or lon is None:
-                    raise ValueError("🌐❌  Latitude e/ou longitude ausentes.")
+                    raise ValueError(
+                ":globe_with_meridians::x:  Latitude e/ou longitude ausentes."
+                    )
                 if alt is not None:
                     geom = geojson.Point((lon, lat, alt))
                 else:
@@ -60,19 +67,19 @@ class Work(frontmatter.Post):
                     geom = geojson.MultiPolygon(coords)
                 else:
                     raise ValueError(
-                        f"🌐❌  {geom_type} não é um tipo de geometria válido."
+f":globe_with_meridians::x:  {geom_type} não é um tipo de geometria válido."
                                      )
             else:
                 raise ValueError(
-                    "🌐❌  Dados de georreferenciamento inexistentes."
+":globe_with_meridians::x:  Dados de georreferenciamento inexistentes."
                                  )
             feature = geojson.Feature(geometry=geom, properties=props)
             if feature.is_valid:
                 places.append(feature)
             else:
                 raise ValueError(f"""
-                    🌐❌  Dados de georreferenciamento inválidos:
-                    {feature.errors()}
+:globe_with_meridians::x:  Dados de georreferenciamento inválidos:
+{feature.errors()}
                     """)
         return geojson.FeatureCollection(places)
 
@@ -96,20 +103,21 @@ class Work(frontmatter.Post):
                 if current_id is None:
                     self['id'] = new_id
                     return new_id
-                elif new_id != current_id:
+                if new_id != current_id:
                     overwrite = input(
-                        f"🌐⚠️  Sobrescrever ID existente {current_id} com novo {new_id} ? s/n"
+f":globe_with_meridians::warning:  Sobrescrever ID existente {current_id} com novo {new_id} ? s/n"
                     ).strip().lower()
                     if overwrite in {"s", "sim", "y", "yes"}:
                         self['id'] = new_id
                         return new_id
-                    else:
-                        return current_id
-                else:
-                    return None
         return current_id
 
-    def valida(self, schema_file: str = "data/schema.yaml", parser: str = "ruamel") -> None:
+    def valida(
+            self,
+            schema_file: str = "data/schema.yaml",
+            parser: str = "ruamel"
+    ) -> None:
+        """Valida os dados do objeto contra o esquema usando Yamale"""
         dir = os.path.abspath(os.path.dirname(__file__))
         with open(os.path.join(dir, schema_file), 'r') as f:
             schema = f.read()

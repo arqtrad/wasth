@@ -1,4 +1,13 @@
-"""WASTH: Web App para Sítios Tradicionais e Históricos"""
+"""WASTH: Web App para Sítios Tradicionais e Históricos
+
+Este pacote define os modelos de dados dos Documentários e fornece
+utilitários de validação, normalização e georreferenciamento, além de
+utilitários para linha de comando e (futuramente) uma interface web.
+
+Como usar:
+
+    from wasth import Work
+"""
 
 __version__ = "0.2.1"
 

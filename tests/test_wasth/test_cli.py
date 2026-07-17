@@ -1,6 +1,6 @@
 import pytest
-import wasth.cli
 import typer
+import wasth.cli
 
 @pytest.fixture
 def valid_orcid_no():
@@ -18,12 +18,15 @@ def invalid_orcid():
     return o
 
 def test_orcid_no_passes(valid_orcid_no):
+    "O número ORCiD é válido, o teste passa"
     assert wasth.cli.user_orcid(valid_orcid_no) == valid_orcid_no
 
 def test_orcid_uri_passes(valid_orcid_no, valid_orcid_uri):
+    "O URI do ORCiD é válido, o teste passa e retorna o número"
     assert wasth.cli.user_orcid(valid_orcid_uri) == valid_orcid_no
 
 def test_orcid_fails(invalid_orcid):
+    "O ORCiD é inválido, o teste retorna um erro."
     with pytest.raises(typer.BadParameter) as e:
         wasth.cli.user_orcid(invalid_orcid)
-    assert str(e.value) == "❌  ORCiD inválido."
+    assert str(e.value) == ":w:  ORCiD inválido."

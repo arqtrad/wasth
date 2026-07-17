@@ -25,15 +25,23 @@ def test_parse_metadata(testfile):
 def test_f_lint(testfile):
     assert type(wasth.core.valida_yaml.f_lint(testfile)) is list
 
-# Testes de validação do esquema XML
 
-def test_create_schema(schema_path="schemata/lido-v1.1-profile-architecture-v1.1.xsd"):
+def test_create_schema(
+        schema_path="src/wasth/data/lido-v1.1-profile-architecture-v1.1.xsd"
+):
+    "Testa o esquema XML"
     wasth.core.valida_xml.create_schema()
     assert os.path.isfile(schema_path)
 
-def test_valid_xml(schema="schemata/lido-v1.1-profile-architecture-v1.1.xsd"):
-    assert wasth.core.valida_xml.valid_xml("testdata/lido/Stabkirche_Gol_Original_de_en_v1.1_20250331.xml") == True
+def test_valid_xml(
+):
+    "Testa que o arquivo exemplo valida com o esquema"
+    assert wasth.core.valida_xml.valid_xml(
+        "testdata/lido/Stabkirche_Gol_Original_de_en_v1.1_20250331.xml"
+    ) is True
 
-def test_invalid_xml(schema="schemata/lido-v1.1-profile-architecture-v1.1.xsd"):
+def test_invalid_xml(
+):
+    "Testa que um arquivo inválido falha na validação"
     with pytest.raises(xmlschema.exceptions.XMLResourceParseError):
         wasth.core.valida_xml.valid_xml("testdata/invalid.xml")

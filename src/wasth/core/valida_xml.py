@@ -8,30 +8,32 @@ ao perfil de aplicação a obras de arquitetura.
 import sys
 import os
 import xmlschema
+from rich import print
 
-def create_schema(schema_path="schemata/lido-v1.1-profile-architecture-v1.1.xsd"):
-    """Mostra problemas de estrutura dos dados
-    """
-    schema_path = "schemata/lido-v1.1-profile-architecture-v1.1.xsd"
+def create_schema(
+        schema_path="src/wasth/data/lido-v1.1-profile-architecture-v1.1.xsd"
+):
+    """Mostra problemas de estrutura dos dados"""
+    schema_path = "src/wasth/data/lido-v1.1-profile-architecture-v1.1.xsd"
     if not os.path.isfile(schema_path):
         # Usamos XMLSchema11 em vez de XMLSchema por causa deste problema de
         # validação do OpenGML:
         # https://github.com/sissaschool/xmlschema/issues/425
         xml_profile = xmlschema.XMLSchema11("https://lido-schema.org/profiles/v1.1/lido-v1.1-profile-architecture-v1.1.xsd")
-        xml_profile.export(target='schemata', save_remote=True)
+        xml_profile.export(target='src/wasth/data', save_remote=True)
     xml_profile = xmlschema.XMLSchema11(schema_path)
     return xml_profile
     # type: <class 'xmlschema.validators.schemas.XMLSchema11'>
 
 def valid_xml(doc_path):
+    """Valida um arquivo XML contra especificação XSD"""
     if os.path.isfile(doc_path):
         xml_profile = create_schema()
         if xml_profile.is_valid(doc_path):
-            print(f"✅ O documento '{doc_path}' é válido.")
+            print(f":white_check_mark: O documento '{doc_path}' é válido.")
             return True
-        else:
-            xml_profile.validate(doc_path)
-            return False
+        xml_profile.validate(doc_path)
+        return False
     else:
         print("Documento não encontrado.")
         return False
@@ -53,10 +55,10 @@ Informar um caminho relativo de pasta ou nomes de arquivos/ficheiros:
             for file in filelist:
                 try:
                     valid_xml(file)
-                except:
+                except Exception as e:
                     print(f"""
 -------------------------------------------------------------------------------
 
-🚫 Não foi possível ler {file}""")
+:prohibited: Não foi possível ler {file}: {e}""")
     else:
         print("Operação cancelada")

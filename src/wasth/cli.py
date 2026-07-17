@@ -10,15 +10,19 @@ from rich import print
 app = typer.Typer()
 
 def user_orcid(orcid: str) -> str:
-    user_orcid = orcid.strip()
+    """Recebe, valida e normaliza um ORCiD inserido pelo usuário
+
+    Aceita o número do ORCiD ou o URI completo.
+    """
+    orcid = orcid.strip()
     checker = ORCID_Checksum()
     try:
-        valida = checker.check_orcid_checksum(user_orcid)
+        valida = checker.check_orcid_checksum(orcid)
     except Exception as e:
-        raise typer.BadParameter(f"❌  Erro de validação: {e}.")
+        raise typer.BadParameter(f":w:  Erro de validação: {e}.")
     if valida is False:
-        raise typer.BadParameter("❌  ORCiD inválido.")
-    return checker.parse_orcid(user_orcid)
+        raise typer.BadParameter(":w:  ORCiD inválido.")
+    return checker.parse_orcid(orcid)
 
 @app.command()
 def main(
@@ -36,7 +40,7 @@ def main(
     Esta é a tela de acesso à interfaz de preenchimento das fichas dos
     Documentários de arquitetura tradicional.
     """
-    typer.echo(f"ORCiD {orcid} válido.")
+    typer.echo(f":white_check_mark: ORCiD {orcid} válido.")
     print("""
 -------------------------------------------------------
  Interfaz de linha de comando da aplicação

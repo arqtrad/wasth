@@ -7,9 +7,10 @@ Valida a estrutura do conteúdo.
 
 from copy import deepcopy
 from pathlib import Path
-import sys
 import os
+import sys
 import frontmatter
+from rich import print
 from ruamel.yaml import YAML
 yaml = YAML(typ='safe')
 
@@ -25,25 +26,32 @@ def normalize(post: frontmatter.Post) -> frontmatter.Post:
     - spatial:location de map para lista
     - format:extent e spatial:extent normalizados para format:extent (lista)
     """
-    bibliographicCitation = post.get('bibliographicCitation')
-    if isinstance(bibliographicCitation, dict):
-        if bibliographicCitation.get('citekey') is not None:
+    bibliographic_citation = post.get('bibliographicCitation')
+    if isinstance(bibliographic_citation, dict):
+        if bibliographic_citation.get('citekey') is not None:
             post['bibliographicCitation'] = [
-                bibliographicCitation.get('citekey')
+                bibliographic_citation.get('citekey')
             ]
         else:
             raise ValueError(
-                f"📖  {bibliographicCitation} não contém uma chave de citação para {post['title'].upper()}."
+f":book:  {bibliographic_citation} não contém uma chave de citação para {post['title'].upper()}."
             )
-    elif isinstance(bibliographicCitation, list):
+    elif isinstance(bibliographic_citation, list):
         citekeys = []
-        for citation in bibliographicCitation:
+        for citation in bibliographic_citation:
             if isinstance(citation, str):
-                citekeys.append(citation if citation.startswith('@') else '@' + citation)
+                citekeys.append(
+                    citation if citation.startswith('@') else '@' + citation
+                )
             elif isinstance(citation, dict) and isinstance(citation.get('relids'), str):
-                citekeys.append(citation['relids'] if citation['relids'].startswith('@') else "@" + citation['relids'])
+                citekeys.append(
+                    citation['relids'] if citation['relids'].startswith('@')
+                    else "@" + citation['relids']
+                )
             else:
-                print(f"⚠️  O registro {citation} não contém um campo com chave de citação, ignorando...")
+                print(
+f":warning:  O registro {citation} não contém um campo com chave de citação, ignorando..."
+                )
         if len(citekeys) > 0:
             post['bibliographicCitation'] = citekeys
 
@@ -131,6 +139,10 @@ def normalize(post: frontmatter.Post) -> frontmatter.Post:
     return post
 
 def paths(args: list | None = None) -> dict[list[str], str] | None:
+    """
+    Gera os nomes de arquivos de entrada e a pasta de saída a partir
+    da inserção do usuário.
+    """
     if not args:
         if len(sys.argv) == 3:
             args = sys.argv[1:]
@@ -161,6 +173,7 @@ def paths(args: list | None = None) -> dict[list[str], str] | None:
     return {'filelist': filelist, 'output_dir': output_dir}
 
 def write_file(post: frontmatter.Post, output_dir: str, filename: str) -> None:
+    """Grava cada arquivo/ficheiro conforme nome e pasta recebidos."""
     try:
         os.makedirs(output_dir, exist_ok=True)
         dest = os.path.join(output_dir, filename)
@@ -170,6 +183,7 @@ def write_file(post: frontmatter.Post, output_dir: str, filename: str) -> None:
         print(f"❌  Erro na escrita em '{dest}': {e}")
 
 def main(args: dict[list, str] | None = None) -> int | None:
+    """Compila todos os arquivos/ficheiros a serem gravados."""
     if args is None:
         args = paths()
         if args is None:
