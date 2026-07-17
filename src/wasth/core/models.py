@@ -1,13 +1,15 @@
 """Modelos de objeto usados no WASTH, especialmente a ficha de obra"""
 
 import os
+from pathlib import Path
+import sys
 import frontmatter
 import geojson
 from ruamel.yaml import YAML
 import yamale
 from openlocationcode import openlocationcode
 from rich import print
-from .valida_yaml import f_valida
+from typing import TypedDict
 yaml = YAML(typ='safe')
 
 class Work(frontmatter.Post):
@@ -18,13 +20,13 @@ class Work(frontmatter.Post):
         super().__init__(content=content, handler=handler, **metadata)
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f) -> "Work":
         """Gera o objeto a partir de um arquivo/ficheiro."""
-        self = frontmatter.load(f)
-        return cls(content=self.content, handler=self.handler, **self.metadata)
+        post = frontmatter.load(f)
+        return cls(content=post.content, handler=post.handler, **post.metadata)
 
     @classmethod
-    def from_post(cls, post: frontmatter.Post) -> Work:
+    def from_post(cls, post: frontmatter.Post) -> "Work":
         """Gera o objeto a partir de um objeto frontmatter.Post"""
         return cls(content=post.content, handler=post.handler, **post.metadata)
 
@@ -91,26 +93,19 @@ f":globe_with_meridians::x:  {geom_type} não é um tipo de geometria válido."
         inseridas na ficha ou na interface.
         """
         spatial = self.get('spatial', [])
-        current_id = self.get('id')
+        if spatial is None:
+            return None
         for place in spatial:
-            if place.get('type') == 'site' and place.get('location'):
-                location = place['location']
-                lat = location.get('lat')
-                lon = location.get('lon')
-                if lat is None or lon is None:
-                    continue
-                new_id = openlocationcode.encode(lat, lon, 11)
-                if current_id is None:
-                    self['id'] = new_id
-                    return new_id
-                if new_id != current_id:
-                    overwrite = input(
-f":globe_with_meridians::warning:  Sobrescrever ID existente {current_id} com novo {new_id} ? s/n"
-                    ).strip().lower()
-                    if overwrite in {"s", "sim", "y", "yes"}:
-                        self['id'] = new_id
-                        return new_id
-        return current_id
+            if place.get('type') != "site":
+                continue
+            location = place.get('location')
+            if not location:
+                continue
+            lat = location.get('lat')
+            lon = location.get('lon')
+            if lat is None or lon is None:
+                continue
+            return openlocationcode.encode(lat, lon, 11)
 
     def valida(
             self,
@@ -128,3 +123,56 @@ f":globe_with_meridians::warning:  Sobrescrever ID existente {current_id} com no
 
 class GeoFeatures(geojson.FeatureCollection):
     pass
+
+class InOutPaths(TypedDict):
+    filelist: list[str]
+    output_dir: str
+
+def paths(
+    args: list[str] | None = None,
+    overwrite: bool | None = None
+) -> InOutPaths | None:
+    """
+    Gera os nomes de arquivos de entrada e a pasta de saída.
+
+    Primeiro argumento: caminho de entrada (arquivo/ficheiro ou pasta)
+    Segundo argumento: caminho de saída (pasta), opcional;
+    se for deixado em branco sobrescreve o existente.
+    """
+    if not args:
+        if 2 <= len(sys.argv) <= 3:
+            args = sys.argv[1:]
+        else:
+            args = input("""
+Informar um caminho de arquivo/ficheiro ou pasta de leitura
+e opcionalmente uma pasta de gravação.
+Omitir a pasta de gravação sobrescreve os arquivos/ficheiros existentes.
+                """).strip().split()
+    if not args:
+        print("Operação cancelada.")
+        return None
+    source = args[0]
+    if len(args) == 1:
+        if overwrite is None:
+            prompt = input(
+                ":warning:  Sobrescrever arquivos/ficheiros existentes? s/n"
+            ).strip().lower()
+            overwrite = prompt in { "s", "sim", "y", "yes", "sobrescrever" }
+        if overwrite is False:
+            print("Operação cancelada.")
+            return None
+    if len(args) > 2:
+        raise OSError("Número excessivo de argumentos.")
+    if len(args) == 2 and os.path.isfile(args[1]):
+        raise OSError("O segundo argumento deve ser uma pasta ou ser omitido.")
+    if os.path.isdir(source):
+        filelist = [
+            os.path.join(source, f)
+            for f in os.listdir(source)
+            if os.path.isfile(os.path.join(source, f))
+        ]
+        output_dir = args[1] if len(args) == 2 else source
+        return { 'filelist': filelist, 'output_dir': output_dir }
+    output_dir = args[1] if len(args) == 2\
+        else str(Path(source).resolve().parent)
+    return { 'filelist': [source], 'output_dir': output_dir}

@@ -2,8 +2,7 @@ import os
 import shutil
 import pytest
 import frontmatter
-import yamllint.config
-import yamllint.linter
+from wasth.core import models
 import wasth.core.valida_yaml
 import wasth.core.normalize as norm
 
@@ -36,7 +35,7 @@ def test_paths(monkeypatch, testfile, output_dir):
         'builtins.input',
         lambda _: str(testfile + " " + output_dir)
     )
-    result = norm.paths()
+    result = models.paths()
     assert isinstance(result, dict)
     assert isinstance(result['filelist'], list)
     assert isinstance(result['output_dir'], str)
@@ -83,8 +82,8 @@ def lint_metadata(testfile, output_dir):
     yaml_lint_list = wasth.core.valida_yaml.f_lint(output_file)
     try:
         assert len(yaml_lint_list) == 0
-    except FileNotFoundError:
-        print(f"Arquivo '{output_file}' não encontrado.")
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f":question:  '{output_file}': {e}.") from e
     except Exception as e:
         print(f"{e}")
     except:

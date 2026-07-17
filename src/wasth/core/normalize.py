@@ -6,12 +6,15 @@ Valida a estrutura do conteúdo.
 """
 
 from copy import deepcopy
-from pathlib import Path
 import os
+from pathlib import Path
 import sys
 import frontmatter
 from rich import print
 from ruamel.yaml import YAML
+from wasth.core.models import Work
+import wasth.core.models as models
+
 yaml = YAML(typ='safe')
 
 def normalize(post: frontmatter.Post) -> frontmatter.Post:
@@ -144,69 +147,102 @@ f":warning:  O registro {citation} não contém um campo com chave de citação,
         post['spatial'] = deepcopy(places) if places else None
     return post
 
-def paths(args: list | None = None) -> dict[list[str], str] | None:
-    """
-    Gera os nomes de arquivos de entrada e a pasta de saída a partir
-    da inserção do usuário.
-    """
-    if not args:
-        if len(sys.argv) == 3:
-            args = sys.argv[1:]
-        else:
-            text = input(
-                """
-                Informar um caminho de arquivo/ficheiro ou pasta de leitura
-                e uma pasta de saída:
-                (deixar em branco cancela a operação)
-                """
-            ).strip()
-            args = text.split()
-    if len(args) == 2:
-        source, output_dir = args
-    else:
-        raise ValueError("Informar dois argumentos.")
+def make_id(work: Work, overwrite: bool | None = None) -> Work:
+    "Roda o método de geração de ID Open Location no objeto Work"
+    if work.get('spatial') is None:
+        pass
+    current_id = work.get('id')
+    new_id = work.olc_id()
+    if new_id is None:
+        pass
+    if current_id == new_id or new_id is None:
+        return work
+    if current_id is None:
+        work['id'] = new_id
+        return work
+    if current_id != new_id:
+        if overwrite is None:
+            prompt = input(
+f"Sobrescrever ID {current_id} existente com novo ID {new_id}? s/n"
+            ).strip().lower()
+            overwrite = prompt in { "s", "sim", "y", "yes", "true" }
+        if overwrite is False:
+            return work
+    work['id'] = new_id
+    return work
 
-    if os.path.isfile(source) and Path(source).suffix.lower() == ".md":
-        filelist = [ source ]
-    elif os.path.isdir(source):
-        filelist = [
-            os.path.join(source, f)
-            for f in os.listdir(source)
-            if os.path.isfile(os.path.join(source, f)) and Path(f).suffix.lower() == ".md"
-        ]
-    else:
-        raise ValueError("O primeiro argumento não é um arquivo ou pasta válido.")
-    return {'filelist': filelist, 'output_dir': output_dir}
+def write_id(source_file: str | None, enc: str = 'utf-8') -> Work:
+    "Grava o Open Location Code para o arquivo/ficheiro indicado."
+    if not source_file:
+        source_file = input("Inserir um caminho de arquivo/ficheiro:")
+    if not os.path.isfile(source_file):
+        raise ValueError(
+            f":x:  Arquivo/ficheiro não encontrado em {source_file}"
+        )
+    if Path(source_file).suffix.lower() != ".md":
+        raise ValueError(f":x:  {source_file} não é um arquivo válido.")
+    try:
+        work = Work.from_file(source_file)
+    except Exception as e:
+        raise ValueError(
+            f"""
+:x:  Erro ao ler {source_file}:
+   {e}
+            """
+        ) from e
+    work = make_id(work)
+    with open(source_file, 'w', encoding=enc) as f:
+        frontmatter.dump(work, f, sort_keys=False)
+        print(
+f":card_index:  ID: {make_id(work).get('id')} gravado em {source_file}."
+        )
+    return work
 
-def write_file(post: frontmatter.Post, output_dir: str, filename: str) -> None:
+def write_file(
+        post: frontmatter.Post | Work,
+        output_dir: str,
+        filename: str
+) -> str | None:
     """Grava cada arquivo/ficheiro conforme nome e pasta recebidos."""
     try:
         os.makedirs(output_dir, exist_ok=True)
         dest = os.path.join(output_dir, filename)
         frontmatter.dump(post, dest, sort_keys=False)
-        print(f"📄  '{dest}' gravado com sucesso.")
+        print(f"""
+:card_index:  {post.get('id')} --- [bold]{post.get('title')}[/bold]
+   gravado em '{dest}'
+        """)
+        return dest
     except Exception as e:
-        print(f":x:  Erro na escrita em '{dest}': {e}")
+        raise OSError(f":x:  Erro na escrita em '{dest}':\n {e}") from e
 
-def main(args: dict[list, str] | None = None) -> int | None:
+def main(args: models.InOutPaths | None = None) -> int | None:
     """Compila todos os arquivos/ficheiros a serem gravados."""
     if args is None:
-        args = paths()
+        args = models.paths()
         if args is None:
             return None
-    files = args['filelist']
+    files = []
+    raw_files = sorted(args['filelist'])
+    for f in raw_files:
+        if ".md" in f:
+            files.append(f)
     output_dir = args['output_dir']
     try:
         os.makedirs(output_dir, exist_ok=True)
-        print(f"📁  Pasta '{output_dir}' criada com sucesso.")
+        print(f":open_file_folder:  Pasta '{output_dir}' criada com sucesso.")
     except PermissionError:
-        print(f"❌  Não foi possível criar a pasta '{output_dir}': sem permissões.")
+        print(f":x:  Não foi possível criar a pasta '{output_dir}': sem permissões.")
     except Exception as e:
-        print(f"❌  Erro na criação da pasta: {e}")
+        print(f":x:  Erro na criação da pasta: {e}")
     for file in files:
         post = frontmatter.load(file)
         filename = os.path.basename(file)
         post = normalize(post)
+# Funcionalidade temporária abaixo, remover quando não for mais necessária.
+        work = Work.from_post(post)
+        post = make_id(work)
+# Funcionalidade temporária acima, remover quando não for mais necessária.
         write_file(post, output_dir, filename)
     return 0
 

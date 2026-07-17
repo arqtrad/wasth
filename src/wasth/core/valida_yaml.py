@@ -11,6 +11,8 @@ from rich import print
 import yamale
 import yamllint.config
 import yamllint.linter
+from wasth.core import models
+from wasth.core.models import Work
 yaml = YAML(typ='safe')
 
 def f_read(f, enc="utf-8") -> dict:
@@ -53,7 +55,8 @@ def f_lint(f) -> list:
             case _:
                 p_level = p.level
         p_print = str
-        p_print = f"\t{p_level}" + f"{p.line:>4}{':'}{p.column:>2}" + f"{p.desc:<40}" + f"{'('}{p.rule}{')'}"
+        p_print = f"\t{p_level}" + f"{p.line:>4}{':'}{p.column:>2}"\
+            + f"{p.desc:<40}" + f"{'('}{p.rule}{')'}"
         yaml_lint_list.append(p_print)
     return yaml_lint_list
 
@@ -77,43 +80,22 @@ def f_schema(f):
         print(f""":x: {e}""")
     sys.exit(1)
 
-def filelist(input) -> list[str] | None:
-    """Constrói lista de arquivos/ficheiros a serem validados"""
-    if len(input) > 1:
-        args = input[1:]
-    else:
-        args = input("""
-Informar um caminho relativo de pasta ou nomes de arquivos/ficheiros:
-(deixar em branco cancela a operação)
-""").split()
-    if args:
-        if os.path.isdir(args[0]):
-            files = [
-                os.path.join(args[0], f) for f in os.listdir(args[0])
-                if os.path.isfile(os.path.join(args[0], f))
-            ]
-            return files
-        if os.path.isfile(args[0]):
-            files = [args[0]]
-            return files
-    print("Operação cancelada")
-    return None
-
 def f_valida(files: list[str]) -> int:
     """Valida arquivo/ficheiro contra esquema"""
     had_error = False
     for file in files:
         try:
-            title = parse_metadata(file)['title']
+            work = Work.from_file(file)
+            title = work['title']
             print(f"""
 -------------------------------------------------------------------------------
 {title.upper():^79s}
 
-📄 {file}
+:card_index: {file}
 """)
             lint_result = f_lint(file)
             if not lint_result:
-                print(":white_check_mark: Sem inconsistências de formatação.\n")
+                print(":white_check_mark: Sem inconsistências de formatação.")
             else:
                 print("Relatório de inconsistências de formatação:\n")
                 for p in lint_result:
@@ -129,13 +111,17 @@ def f_valida(files: list[str]) -> int:
             print('  ' + str(e))
     return 1 if had_error else 0
 
-def main(args: list[str] | None = None) -> int:
+def main(
+    args: models.InOutPaths | None = None,
+    ignore_output_dir: bool = True
+) -> int | None:
     """
     Recebe uma lista de arquivos YAML e relata validação de sintaxe e estilo
     """
-    if args is None:
-        args = sys.argv
-    files = filelist(args)
+    args = models.paths(overwrite=ignore_output_dir)
+    if not args:
+        return None
+    files = args['filelist']
     return f_valida(files)
 
 if __name__ == "__main__":
