@@ -13,6 +13,7 @@ concurrency:
   group: "test"
   cancel-in-progress: true
 
+jobs:
   test:
     name: pylint-pytest
     runs-on: ubuntu-latest
