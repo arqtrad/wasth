@@ -1,15 +1,17 @@
 """Modelos de objeto usados no WASTH, especialmente a ficha de obra"""
 
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
+from typing import TypedDict
+
 import frontmatter
 import geojson
-from ruamel.yaml import YAML
 import yamale
 from openlocationcode import openlocationcode
 from rich import print
-from typing import TypedDict
+from ruamel.yaml import YAML
+
 yaml = YAML(typ='safe')
 
 class Work(frontmatter.Post):
@@ -108,20 +110,32 @@ f":globe_with_meridians::x:  {geom_type} não é um tipo de geometria válido."
             return openlocationcode.encode(lat, lon, 11)
 
     def valida(
-            self,
-            schema_file: str = "data/schema.yaml",
-            parser: str = "ruamel"
+        self,
+        schema_file: str = "data/schema.yaml",
+        parser: str = "ruamel",
+        encoding: str = 'utf-8'
     ) -> None:
         """Valida os dados do objeto contra o esquema usando Yamale"""
-        dir = os.path.abspath(os.path.dirname(__file__))
-        with open(os.path.join(dir, schema_file), 'r') as f:
+        root_dir = Path(__file__).resolve().parent.parent
+        schema_path = os.path.join(root_dir, schema_file)
+        with open(schema_path, 'r', encoding=encoding) as f:
             schema = f.read()
         schema = yamale.make_schema(content=schema, parser=parser)
-        content = yaml.dump(self.metadata, sort_keys=False, allow_unicode=True)
+        content = yaml.dump(self.metadata)
         data = yamale.make_data(content=content, parser=parser)
         yamale.validate(schema, data)
 
 class GeoFeatures(geojson.FeatureCollection):
+    pass
+
+class Lugar(Work):
+    """
+    Define a ficha de lugares como variante da ficha de obra e fornece
+    os métodos adicionais:
+
+    - Gera ou atualiza a partir da base cartográfica do IBGE;
+    - Gera ou atualiza a partir da toponímia de Portugal continental do DGT.
+    """
     pass
 
 class InOutPaths(TypedDict):

@@ -1,8 +1,8 @@
 """Acesso ao CLI do Typer (assistente de preenchimento das fichas)
 """
 
-from typing import Optional
-from typing import Annotated
+from typing import Annotated, Optional
+
 import typer
 from pyorcid_checksum import ORCID_Checksum
 from rich import print

@@ -7,9 +7,12 @@ Não temos previsão de implementar o caminho inverso
 
 import os
 from pathlib import Path
+
 import geojson
 from rich import print
+
 from wasth.core import models
+
 
 def collect_features(
         features: list[geojson.Feature]
@@ -33,7 +36,7 @@ def f_write(
         os.makedirs(directory, exist_ok=True)
         with open(output_file, 'w', encoding=encoding) as f:
             geojson.dump(collection, f)
-        print(f"📄  Arquivo '{output_file}' gravado com sucesso.")
+        print(f":page_facing_up:  Arquivo '{output_file}' gravado com sucesso.")
     except Exception as e:
         print(f":x:  Erro na escrita do arquivo '{output_file}': {e}")
 

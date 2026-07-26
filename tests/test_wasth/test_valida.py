@@ -1,29 +1,31 @@
-from glob import glob
-import os
-import pytest
+"""Testes de validação contra esquema XML
+"""
 import frontmatter
+import pytest
 import xmlschema
-from wasth.core import valida_yaml
-from wasth.core import valida_xml
+
+from wasth.core import valida_xml, valida_yaml
+
 
 @pytest.fixture
-def testfile():
-    f = "testdata/casa/br_df-planaltina-casarao_azul.md"
-    return f
+def obra_formato_antigo():
+    "Ficha do Casarão Azul no formato antigo"
+    return "testdata/casa/br_df-planaltina-casarao_azul.md"
 
-def test_f_read(testfile):
+def test_f_read():
     "Testa se o arquivo pode ser lido"
-    assert isinstance(valida_yaml.f_read(testfile), dict)
+    assert isinstance(valida_yaml.f_read(obra_formato_antigo()), dict)
 
-def test_parse_metadata(testfile):
+def test_parse_metadata():
     "Testa se os metadados podem ser lidos"
-    post = valida_yaml.parse_metadata(testfile)
+    post = valida_yaml.parse_metadata(obra_formato_antigo())
     assert post['title'] == "Casarão Azul"
     assert len(post.content) > 1
     assert isinstance(post, frontmatter.Post)
 
-def test_f_lint(testfile):
-    assert isinstance(valida_yaml.f_lint(testfile), list)
+def test_f_lint():
+    "Verifica se a função gerou uma lista"
+    assert isinstance(valida_yaml.f_lint(obra_formato_antigo()), list)
 
 
 def test_create_schema():
