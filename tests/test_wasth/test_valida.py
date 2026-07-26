@@ -26,22 +26,18 @@ def test_f_lint(testfile):
     assert isinstance(valida_yaml.f_lint(testfile), list)
 
 
-def test_create_schema(
-        schema_path="src/wasth/data/lido-v1.1-profile-architecture-v1.1.xsd"
-):
+def test_create_schema():
     "Testa o esquema XML"
-    valida_xml.create_schema()
-    assert os.path.isfile(schema_path)
+    xml_profile = valida_xml.create_schema()
+    assert isinstance(xml_profile, xmlschema.XMLSchema11)
 
-def test_valid_xml(
-):
+def test_valid_xml():
     "Testa que o arquivo exemplo valida com o esquema"
     assert valida_xml.valid_xml(
         "testdata/lido/Stabkirche_Gol_Original_de_en_v1.1_20250331.xml"
     ) is True
 
-def test_invalid_xml(
-):
+def test_invalid_xml():
     "Testa que um arquivo inválido falha na validação"
     with pytest.raises(xmlschema.exceptions.XMLResourceParseError):
         valida_xml.valid_xml("testdata/invalid.xml")

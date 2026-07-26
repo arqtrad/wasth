@@ -22,5 +22,8 @@ def test_md2geojson(testfile):
     assert isinstance(post, frontmatter.Post)
     work = wasth.Work.from_post(post)
     assert isinstance(work, wasth.Work)
-    test_geofeature = md2geojson.make_feature(work)
-    assert isinstance(test_geofeature, geojson.Feature)
+    places = work.places()
+    assert isinstance(places, geojson.FeatureCollection)
+    assert places.errors() == []
+    for place in places['features']:
+        assert isinstance(place, geojson.Feature)
