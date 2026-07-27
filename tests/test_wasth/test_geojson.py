@@ -1,9 +1,11 @@
-import pytest
-import geojson
 import frontmatter
+import geojson
+import pytest
+
 import wasth
 import wasth.core.normalize as norm
-from wasth.core import md2geojson
+from wasth.core import geoprocessa
+
 
 @pytest.fixture
 def testfile():
@@ -15,13 +17,13 @@ def input_dir():
     d = "testdata/casa"
     return d
 
-def test_md2geojson(testfile):
+def test_geoprocessa(testfile):
     "Testa tipos de objetos retornados pelas funções"
     metadata = frontmatter.load(testfile)
     post = norm.normalize(metadata)
     assert isinstance(post, frontmatter.Post)
-    work = wasth.Work.from_post(post)
-    assert isinstance(work, wasth.Work)
+    work = wasth.Obra.from_post(post)
+    assert isinstance(work, wasth.Obra)
     places = work.places()
     assert isinstance(places, geojson.FeatureCollection)
     assert places.errors() == []
