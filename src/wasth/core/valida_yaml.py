@@ -3,16 +3,19 @@
 Verifica se o arquivo/ficheiro existe, e se a sua sintaxe é válida.
 """
 
-import sys
 import os
+import sys
+
 import frontmatter
-from ruamel.yaml import YAML
-from rich import print
 import yamale
 import yamllint.config
 import yamllint.linter
+from rich import print
+from ruamel.yaml import YAML
+
 from wasth.core import models
-from wasth.core.models import Work
+from wasth.core.models import Obra
+
 yaml = YAML(typ='safe')
 
 def f_read(f, enc="utf-8") -> dict:
@@ -85,7 +88,7 @@ def f_valida(files: list[str]) -> int:
     had_error = False
     for file in files:
         try:
-            work = Work.from_file(file)
+            work = Obra.from_file(file)
             title = work['title']
             print(f"""
 -------------------------------------------------------------------------------

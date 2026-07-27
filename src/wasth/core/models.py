@@ -14,7 +14,7 @@ from ruamel.yaml import YAML
 
 yaml = YAML(typ='safe')
 
-class Work(frontmatter.Post):
+class Obra(frontmatter.Post):
     """
     Arcabouço dos dados e métodos das fichas de obras.
     """
@@ -22,13 +22,13 @@ class Work(frontmatter.Post):
         super().__init__(content=content, handler=handler, **metadata)
 
     @classmethod
-    def from_file(cls, f) -> "Work":
+    def from_file(cls, f) -> "Obra":
         """Gera o objeto a partir de um arquivo/ficheiro."""
         post = frontmatter.load(f)
         return cls(content=post.content, handler=post.handler, **post.metadata)
 
     @classmethod
-    def from_post(cls, post: frontmatter.Post) -> "Work":
+    def from_post(cls, post: frontmatter.Post) -> "Obra":
         """Gera o objeto a partir de um objeto frontmatter.Post"""
         return cls(content=post.content, handler=post.handler, **post.metadata)
 
@@ -128,7 +128,7 @@ f":globe_with_meridians::x:  {geom_type} não é um tipo de geometria válido."
 class GeoFeatures(geojson.FeatureCollection):
     pass
 
-class Lugar(Work):
+class Lugar(Obra):
     """
     Define a ficha de lugares como variante da ficha de obra e fornece
     os métodos adicionais:
@@ -136,7 +136,10 @@ class Lugar(Work):
     - Gera ou atualiza a partir da base cartográfica do IBGE;
     - Gera ou atualiza a partir da toponímia de Portugal continental do DGT.
     """
-    pass
+    @classmethod
+    def from_geojson_ibge_bc(cls, feature: geojson.Feature) -> "Lugar":
+        "Gera fichas a partir de geojson.Feature"
+        pass
 
 class InOutPaths(TypedDict):
     filelist: list[str]

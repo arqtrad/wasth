@@ -5,15 +5,17 @@ Realiza algumas conversões do esquema DCMI para LIDO.
 Valida a estrutura do conteúdo.
 """
 
-from copy import deepcopy
 import os
-from pathlib import Path
 import sys
+from copy import deepcopy
+from pathlib import Path
+
 import frontmatter
 from rich import print
 from ruamel.yaml import YAML
-from wasth.core.models import Work
+
 import wasth.core.models as models
+from wasth.core.models import Obra
 
 yaml = YAML(typ='safe')
 
@@ -147,8 +149,8 @@ f":warning:  O registro {citation} não contém um campo com chave de citação,
         post['spatial'] = deepcopy(places) if places else None
     return post
 
-def make_id(work: Work, overwrite: bool | None = None) -> Work:
-    "Roda o método de geração de ID Open Location no objeto Work"
+def make_id(work: Obra, overwrite: bool | None = None) -> Obra:
+    "Roda o método de geração de ID Open Location no objeto Obra"
     if work.get('spatial') is None:
         pass
     current_id = work.get('id')
@@ -171,7 +173,7 @@ f"Sobrescrever ID {current_id} existente com novo ID {new_id}? s/n"
     work['id'] = new_id
     return work
 
-def write_id(source_file: str | None, enc: str = 'utf-8') -> Work:
+def write_id(source_file: str | None, enc: str = 'utf-8') -> Obra:
     "Grava o Open Location Code para o arquivo/ficheiro indicado."
     if not source_file:
         source_file = input("Inserir um caminho de arquivo/ficheiro:")
@@ -182,7 +184,7 @@ def write_id(source_file: str | None, enc: str = 'utf-8') -> Work:
     if Path(source_file).suffix.lower() != ".md":
         raise ValueError(f":x:  {source_file} não é um arquivo válido.")
     try:
-        work = Work.from_file(source_file)
+        work = Obra.from_file(source_file)
     except Exception as e:
         raise ValueError(
             f"""
@@ -199,7 +201,7 @@ f":card_index:  ID: {make_id(work).get('id')} gravado em {source_file}."
     return work
 
 def write_file(
-        post: frontmatter.Post | Work,
+        post: frontmatter.Post | Obra,
         output_dir: str,
         filename: str
 ) -> str | None:
@@ -240,7 +242,7 @@ def main(args: models.InOutPaths | None = None) -> int | None:
         filename = os.path.basename(file)
         post = normalize(post)
 # Funcionalidade temporária abaixo, remover quando não for mais necessária.
-        work = Work.from_post(post)
+        work = Obra.from_post(post)
         post = make_id(work)
 # Funcionalidade temporária acima, remover quando não for mais necessária.
         write_file(post, output_dir, filename)

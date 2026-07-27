@@ -1,5 +1,5 @@
 """Funcionalidades partilhadas entre todas as apps do WASTH"""
 
-from .models import Work
+from .models import Obra
 
-__all__ = ['Work']
+__all__ = ['Obra']

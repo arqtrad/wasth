@@ -55,7 +55,7 @@ def main(
     files = args['filelist']
     features = []
     for f in files:
-        work = models.Work.from_file(f)
+        work = models.Obra.from_file(f)
         places = work.places()
         for place in places['features']:
             if isinstance(place, geojson.Point) and\
