@@ -6,7 +6,6 @@ Valida a estrutura do conteúdo.
 """
 
 import os
-import sys
 from copy import deepcopy
 from pathlib import Path
 
@@ -14,8 +13,7 @@ import frontmatter
 from rich import print
 from ruamel.yaml import YAML
 
-import wasth.core.models as models
-from wasth.core.models import Obra
+from wasth.core import models
 
 yaml = YAML(typ='safe')
 
@@ -149,8 +147,8 @@ f":warning:  O registro {citation} não contém um campo com chave de citação,
         post['spatial'] = deepcopy(places) if places else None
     return post
 
-def make_id(work: Obra, overwrite: bool | None = None) -> Obra:
-    "Roda o método de geração de ID Open Location no objeto Obra"
+def make_id(work: models.Obra, overwrite: bool | None = None) -> models.Obra:
+    "Roda o método de geração de ID Open Location no objeto models.Obra"
     if work.get('spatial') is None:
         pass
     current_id = work.get('id')
@@ -173,7 +171,7 @@ f"Sobrescrever ID {current_id} existente com novo ID {new_id}? s/n"
     work['id'] = new_id
     return work
 
-def write_id(source_file: str | None, enc: str = 'utf-8') -> Obra:
+def write_id(source_file: str | None, enc: str = 'utf-8') -> models.Obra:
     "Grava o Open Location Code para o arquivo/ficheiro indicado."
     if not source_file:
         source_file = input("Inserir um caminho de arquivo/ficheiro:")
@@ -184,14 +182,12 @@ def write_id(source_file: str | None, enc: str = 'utf-8') -> Obra:
     if Path(source_file).suffix.lower() != ".md":
         raise ValueError(f":x:  {source_file} não é um arquivo válido.")
     try:
-        work = Obra.from_file(source_file)
+        work = models.Obra.from_file(source_file)
     except Exception as e:
-        raise ValueError(
-            f"""
+        raise ValueError(f"""
 :x:  Erro ao ler {source_file}:
    {e}
-            """
-        ) from e
+            """) from e
     work = make_id(work)
     with open(source_file, 'w', encoding=enc) as f:
         frontmatter.dump(work, f, sort_keys=False)
@@ -199,24 +195,6 @@ def write_id(source_file: str | None, enc: str = 'utf-8') -> Obra:
 f":card_index:  ID: {make_id(work).get('id')} gravado em {source_file}."
         )
     return work
-
-def write_file(
-        post: frontmatter.Post | Obra,
-        output_dir: str,
-        filename: str
-) -> str | None:
-    """Grava cada arquivo/ficheiro conforme nome e pasta recebidos."""
-    try:
-        os.makedirs(output_dir, exist_ok=True)
-        dest = os.path.join(output_dir, filename)
-        frontmatter.dump(post, dest, sort_keys=False)
-        print(f"""
-:card_index:  {post.get('id')} --- [bold]{post.get('title')}[/bold]
-   gravado em '{dest}'
-        """)
-        return dest
-    except Exception as e:
-        raise OSError(f":x:  Erro na escrita em '{dest}':\n {e}") from e
 
 def main(args: models.InOutPaths | None = None) -> int | None:
     """Compila todos os arquivos/ficheiros a serem gravados."""
@@ -233,19 +211,21 @@ def main(args: models.InOutPaths | None = None) -> int | None:
     try:
         os.makedirs(output_dir, exist_ok=True)
         print(f":open_file_folder:  Pasta '{output_dir}' criada com sucesso.")
-    except PermissionError:
-        print(f":x:  Não foi possível criar a pasta '{output_dir}': sem permissões.")
+    except PermissionError as e:
+        raise PermissionError(f"""
+:x:  Não foi possível criar a pasta '{output_dir}': {e}.
+        """) from e
     except Exception as e:
-        print(f":x:  Erro na criação da pasta: {e}")
+        raise Exception(f":x:  Erro na criação da pasta: {e}") from e
     for file in files:
         post = frontmatter.load(file)
         filename = os.path.basename(file)
         post = normalize(post)
 # Funcionalidade temporária abaixo, remover quando não for mais necessária.
-        work = Obra.from_post(post)
-        post = make_id(work)
+        obra = models.Obra.from_post(post)
+        post = make_id(obra)
 # Funcionalidade temporária acima, remover quando não for mais necessária.
-        write_file(post, output_dir, filename)
+        models.write_file(post, output_dir, filename)
     return 0
 
 if __name__ == "__main__":

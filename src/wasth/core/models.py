@@ -149,8 +149,7 @@ def paths(
     args: list[str] | None = None,
     overwrite: bool | None = None
 ) -> InOutPaths | None:
-    """
-    Gera os nomes de arquivos de entrada e a pasta de saída.
+    """Gera os nomes de arquivos de entrada e a pasta de saída.
 
     Primeiro argumento: caminho de entrada (arquivo/ficheiro ou pasta)
     Segundo argumento: caminho de saída (pasta), opcional;
@@ -193,3 +192,21 @@ Omitir a pasta de gravação sobrescreve os arquivos/ficheiros existentes.
     output_dir = args[1] if len(args) == 2\
         else str(Path(source).resolve().parent)
     return { 'filelist': [source], 'output_dir': output_dir}
+
+def write_file(
+        post: frontmatter.Post | Obra | Lugar,
+        output_dir: str,
+        filename: str
+) -> str | None:
+    """Grava cada arquivo/ficheiro conforme nome e pasta recebidos."""
+    try:
+        os.makedirs(output_dir, exist_ok=True)
+        dest = os.path.join(output_dir, filename)
+        frontmatter.dump(post, dest, sort_keys=False)
+        print(f"""
+:card_index:  {post.get('id')} --- [bold]{post.get('title')}[/bold]
+   gravado em '{dest}'
+        """)
+        return dest
+    except Exception as e:
+        raise OSError(f":x:  Erro na escrita em '{dest}':\n {e}") from e
