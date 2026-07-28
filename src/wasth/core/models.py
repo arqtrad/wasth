@@ -125,9 +125,6 @@ f":globe_with_meridians::x:  {geom_type} não é um tipo de geometria válido."
         data = yamale.make_data(content=content, parser=parser)
         yamale.validate(schema, data)
 
-class GeoFeatures(geojson.FeatureCollection):
-    pass
-
 class Lugar(Obra):
     """
     Define a ficha de lugares como variante da ficha de obra e fornece
@@ -137,19 +134,140 @@ class Lugar(Obra):
     - Gera ou atualiza a partir da toponímia de Portugal continental do DGT.
     """
     @classmethod
-    def from_geojson_ibge_bc(cls, feature: geojson.Feature) -> "Lugar":
+    def from_geojson_ibge_bc(cls, feature: geojson.Feature) -> "Lugar | None":
         "Gera fichas a partir de geojson.Feature"
-        pass
+        props = dict(feature.get('properties', {}))
+        geom = feature.get('geometry', {})
+        if not props or not geom:
+            return None
+        if geom.get('type') != 'Point':
+            return None
+        coords = geom.get('coordinates', [])
+        if not isinstance(coords, (list, tuple)) or len(coords) < 2:
+            return None
+        lat = coords[1]
+        lon = coords[0]
+
+        metadata = {
+            'title': props.get('nome'),
+            'title_type': 'repository',
+            'id': openlocationcode.encode(lat, lon, 11),
+            'spatial': [
+                {
+                    'type': 'site',
+                    'location': {
+                        'lat': lat,
+                        'lon': lon,
+                    },
+                    'srsName': {
+                        'type': 'uri',
+                        'refid': 'http://www.opengis.net/def/crs/EPSG/0/4326',
+                        'display': 'EPSG:4326 WGS84',
+                    },
+                    'source': {
+                        'type': 'corporate',
+                        'display': 'IBGE',
+                        'term': {
+                            'type': 'uri',
+                            'refid': 'https://www.wikidata.org/wiki/Q268072',
+                            'display': 'Instituto Brasileiro de Geografia e Estatística',
+                        },
+                    },
+                },
+            ],
+        }
+
+        if isinstance(props.get('geocodigo'), str) and props['geocodigo'].strip():
+            geocodigo = {
+                    'term': {
+                        'type': 'local',
+                        'refid': props['geocodigo'],
+                    },
+                    'source': {
+                        'type': 'corporate',
+                        'display': 'IBGE',
+                        'term': {
+                            'type': 'uri',
+                            'refid': 'https://www.wikidata.org/wiki/Q268072',
+                        'display': 'IBGE, base cartográfica 1:250.000 2026-03-03',
+                        },
+                    },
+                },
+            metadata['identifiers'] = [ geocodigo ]
+
+        context_refid = 'https://www.wikidata.org/wiki/Q486972'
+        context_display = 'sítio habitado'
+        function_refid = 'https://www.wikidata.org/wiki/Q98929991'
+        function_display = 'lugar'
+        match props.get('layer'):
+            case 'lml_aglomerado_rural_p':
+                context_refid = 'https://www.wikidata.org/wiki/Q10354598'
+                context_display = 'aglomerado rural'
+            case 'lml_vila_p':
+                context_refid = 'https://www.wikidata.org/wiki/Q3957'
+                context_display = 'vila'
+            case 'lml_cidade_p':
+                context_refid = 'https://www.wikidata.org/wiki/Q515'
+                context_display = 'cidade'
+                function_refid = 'https://www.wikidata.org/wiki/Q15303838'
+                function_display = 'sede de município'
+            case 'lml_capital_p':
+                context_refid = 'https://www.wikidata.org/wiki/Q515'
+                context_display = 'cidade'
+            case 'lml_aglomerado_rural_isolado_p':
+                if props.get('tipoaglomrurisol'):
+                    context_display = props['tipoaglomrurisol'].lower()
+                    match props['tipoaglomrurisol'].strip().lower():
+                        case 'povoado':
+                            context_refid = 'https://www.wikidata.org/wiki/Q532'
+                        case 'núcleo':
+                            context_refid = 'https://www.wikidata.org/wiki/Q3257686'
+                        case 'lugarejo':
+                            context_refid = 'https://www.wikidata.org/wiki/Q55504400'
+                        case 'outros aglomerados rurais isolados':
+                            context_refid = 'https://www.wikidata.org/wiki/Q10354598'
+                        case _:
+                            context_display = 'sítio habitado'
+                            context_refid = 'https://www.wikidata.org/wiki/Q486972'
+            case _:
+                context_display = 'sítio habitado'
+                context_refid = 'https://www.wikidata.org/wiki/Q486972'
+        if props.get('tipocapital'):
+            function_display = props['tipocapital'].lower()
+            match props['tipocapital']:
+                case 'Capital estadual':
+                    function_refid = 'https://www.wikidata.org/wiki/Q11271835'
+                case 'Capital federal':
+                    function_refid = 'https://www.wikidata.org/wiki/Q108178728'
+                case _:
+                    function_display = 'capital'
+                    function_refid = 'https://www.wikidata.org/wiki/Q5119'
+        metadata['work_type'] = {
+            'context': {
+                'type': 'uri',
+                'refid': context_refid,
+                'display': context_display,
+            },
+            'function': {
+                'type': 'uri',
+                'refid': function_refid,
+                'display': function_display,
+            },
+        }
+
+        return cls(content='', **metadata)
 
 class InOutPaths(TypedDict):
-    filelist: list[str]
-    output_dir: str
+    """Contém uma lista de arquivos/ficheiros de entrada e uma pasta de saída."""
+    filelist: list[Path]
+    output_dir: Path
 
 def paths(
     args: list[str] | None = None,
     overwrite: bool | None = None
 ) -> InOutPaths | None:
-    """Gera os nomes de arquivos de entrada e a pasta de saída.
+    """Gera os nomes de arquivos de entrada e a pasta de saída a partir da
+    entrada do usuário.
 
     Primeiro argumento: caminho de entrada (arquivo/ficheiro ou pasta)
     Segundo argumento: caminho de saída (pasta), opcional;
