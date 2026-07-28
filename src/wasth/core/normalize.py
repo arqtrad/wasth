@@ -196,7 +196,7 @@ f":card_index:  ID: {make_id(work).get('id')} gravado em {source_file}."
         )
     return work
 
-def main(args: models.InOutPaths | None = None) -> int | None:
+def main(args: models.InOutPaths | None = None) -> list | None:
     """Compila todos os arquivos/ficheiros a serem gravados."""
     if args is None:
         args = models.paths()
@@ -205,28 +205,30 @@ def main(args: models.InOutPaths | None = None) -> int | None:
     files = []
     raw_files = sorted(args['filelist'])
     for f in raw_files:
-        if ".md" in f:
+        if Path(f).suffix == ".md":
             files.append(f)
     output_dir = args['output_dir']
     try:
-        os.makedirs(output_dir, exist_ok=True)
-        print(f":open_file_folder:  Pasta '{output_dir}' criada com sucesso.")
+        Path(output_dir).mkdir(exist_ok=True, parents=True)
+        print(f"""
+:open_file_folder:  Pasta '{str(output_dir)}' criada com sucesso.
+        """)
     except PermissionError as e:
         raise PermissionError(f"""
-:x:  Não foi possível criar a pasta '{output_dir}': {e}.
+:x:  Não foi possível criar a pasta '{str(output_dir)}': {e}.
         """) from e
     except Exception as e:
-        raise Exception(f":x:  Erro na criação da pasta: {e}") from e
+        raise OSError(f":x:  Erro na criação da pasta: {e}") from e
     for file in files:
         post = frontmatter.load(file)
-        filename = os.path.basename(file)
+        filename = Path(file)
         post = normalize(post)
 # Funcionalidade temporária abaixo, remover quando não for mais necessária.
         obra = models.Obra.from_post(post)
         post = make_id(obra)
 # Funcionalidade temporária acima, remover quando não for mais necessária.
         models.write_file(post, output_dir, filename)
-    return 0
+    return files
 
 if __name__ == "__main__":
     raise SystemExit(main())

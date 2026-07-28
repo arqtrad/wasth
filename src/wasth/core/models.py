@@ -179,34 +179,36 @@ Omitir a pasta de gravação sobrescreve os arquivos/ficheiros existentes.
             return None
     if len(args) > 2:
         raise OSError("Número excessivo de argumentos.")
-    if len(args) == 2 and os.path.isfile(args[1]):
+    if len(args) == 2 and Path(args[1]).is_file():
         raise OSError("O segundo argumento deve ser uma pasta ou ser omitido.")
-    if os.path.isdir(source):
+    if Path(source).is_dir():
         filelist = [
-            os.path.join(source, f)
-            for f in os.listdir(source)
-            if os.path.isfile(os.path.join(source, f))
+            Path(source).joinpath(f)
+            for f in Path(source).iterdir()
+            if Path(source).joinpath(f).is_file()
         ]
-        output_dir = args[1] if len(args) == 2 else source
+        output_dir = Path(args[1]) if len(args) == 2 else source
         return { 'filelist': filelist, 'output_dir': output_dir }
     output_dir = args[1] if len(args) == 2\
-        else str(Path(source).resolve().parent)
+        else Path(source).resolve().parent
     return { 'filelist': [source], 'output_dir': output_dir}
 
 def write_file(
         post: frontmatter.Post | Obra | Lugar,
-        output_dir: str,
-        filename: str
-) -> str | None:
+        output_dir: Path,
+        filename: Path
+) -> Path | None:
     """Grava cada arquivo/ficheiro conforme nome e pasta recebidos."""
     try:
-        os.makedirs(output_dir, exist_ok=True)
-        dest = os.path.join(output_dir, filename)
+        output_dir.mkdir(exist_ok=True, parents=True)
+        dest = Path(output_dir) / Path(filename)
         frontmatter.dump(post, dest, sort_keys=False)
         print(f"""
 :card_index:  {post.get('id')} --- [bold]{post.get('title')}[/bold]
-   gravado em '{dest}'
+   gravado em '{str(dest)}'
         """)
         return dest
     except Exception as e:
-        raise OSError(f":x:  Erro na escrita em '{dest}':\n {e}") from e
+        raise OSError(f"""
+:x:  Erro na escrita em '{str(output_dir)}/{str(filename)}':\n {e}
+        """) from e
