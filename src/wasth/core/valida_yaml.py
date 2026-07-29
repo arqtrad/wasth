@@ -5,6 +5,7 @@ Verifica se o arquivo/ficheiro existe, e se a sua sintaxe é válida.
 
 import os
 import sys
+from pathlib import Path
 
 import frontmatter
 import yamale
@@ -18,10 +19,10 @@ from wasth.core.models import Obra
 
 yaml = YAML(typ='safe')
 
-def f_read(f, enc="utf-8") -> dict:
+def f_read(file: Path, enc="utf-8") -> dict:
     """Lê o arquivo/ficheiro se ele não estiver vazio"""
-    with open(f, 'r', encoding=enc) as f:
-        contents = f.read().split('\n---\n\n', 2)
+    with file.open('r', encoding=enc) as markdown:
+        contents = markdown.read().split('\n---\n\n', 2)
         metadata = contents[0] + '\n'
         body = contents[1].lstrip() or ''
         document = {

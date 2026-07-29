@@ -1,21 +1,24 @@
+"""Testes da interface CLI, não das funções chamadas por ela."""
 import pytest
 import typer
+
 import wasth.cli
+
 
 @pytest.fixture
 def valid_orcid_no():
-    o = "0000-0002-0187-774X"
-    return o
+    """Um número ORCiD válido."""
+    return "0000-0002-0187-774X"
 
 @pytest.fixture
 def valid_orcid_uri():
-    o = "https://orcid.org/0000-0002-0187-774X"
-    return o
+    """Um URI ORCiD válido."""
+    return "https://orcid.org/0000-0002-0187-774X"
 
 @pytest.fixture
 def invalid_orcid():
-    o =  "0000-0002-0187-7741"
-    return o
+    """Um ORCiD que não valida."""
+    return  "0000-0002-0187-7741"
 
 def test_orcid_no_passes(valid_orcid_no):
     "O número ORCiD é válido, o teste passa"

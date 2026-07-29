@@ -71,6 +71,7 @@ repository:
   display: str(required=False)
   name: include('legal_body', required=False)
   id: include('typed_refs', required=False)
+  part_of: include('repository', required=False)
 
 historic_place:
   type: enum("corporate", "geographic", "personal", "other")

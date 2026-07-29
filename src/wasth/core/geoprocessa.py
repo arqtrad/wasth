@@ -75,6 +75,7 @@ def main(
     """).strip() or 'wasth.geojson'
     output_file = Path(args['output_dir']) / Path(output_filename)
     f_write(collection, output_file=output_file, encoding=encoding)
+    return output_file
 
 if __name__ == "__main__":
     raise SystemExit(main())

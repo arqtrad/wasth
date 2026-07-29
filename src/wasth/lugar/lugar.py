@@ -10,62 +10,53 @@ from rich import print
 from wasth.core import models
 
 
-def extract_feature(collection: geojson.FeatureCollection) -> list | None:
-    features = []
-    if not isinstance(collection, geojson.FeatureCollection) or not collection[0]:
-        return None
-    for feature in collection['features']:
-        features.append(feature)
-    return features
-
-def lugar_from_ibge_bc(
-        features: geojson.FeatureCollection | None
-) -> list[models.Lugar] | None:
-    lugares = []
-    if not features:
-        return None
-    for feature in features:
-        try:
-            lugar = models.Lugar.from_geojson_ibge_bc(feature)
-            lugares.append(lugar)
-        except Exception as e:
-            raise Exception(f"""
-===============================================================================
-:x: Erro ao converter geojson.Feature:
-   {feature}
-   ----------------------------------------------------------------------------
-   {e}
-   ----------------------------------------------------------------------------
-===============================================================================
-            """) from e
-    return lugares
-
-def main(args: models.InOutPaths | None = None) -> list | None:
-    """Compila todos os arquivos/ficheiros a serem gravados."""
-    if args is None:
-        args = models.paths()
-        if args is None:
+def main(
+    paths: models.InOutPaths | None = None,
+    encoding: str = 'utf-8',
+) -> list | None:
+    """Compila, processa e grava todas as fichas de lugares encontradas."""
+    if not paths:
+        paths = models.paths(filetype='.geojson')
+        if paths is None:
             return None
-    files = []
-    raw_files = sorted(args['filelist'])
-    for f in raw_files:
-        if Path(f).suffix == ".geojson":
-            files.append(f)
-    output_dir = args['output_dir']
-    if len(files) == 0:
-        print("Nenhum dado geoJSON encontrado.")
-        return None
-    try:
-        out_path = Path(output_dir)
-        out_path.mkdir(exist_ok=True, parents=True)
-        print(f":open_file_folder:  Pasta '{output_dir}' criada com sucesso.")
-    except PermissionError as e:
-        raise PermissionError(f"""
-:x:  Não foi possível criar a pasta '{output_dir}': sem permissões.
-        """) from e
-    except Exception as e:
-        raise OSError(f":x:  Erro na criação da pasta: {e}") from e
-    pass
+    output_dir = paths['output_dir']
+    models.make_output_dir(output_dir)
+    files = sorted(paths['filelist'])
+    result = []
+
+    for f in files:
+        with f.open('r', encoding=encoding) as file:
+            collection = geojson.load(file)
+        if f.stem.startswith('BR') and 'bc250' in f.stem:
+            print(f"""
+:card_index:  Encontrado documento {str(f)}.
+            """)
+            for feature in collection['features']:
+                lugar = models.Lugar.from_ibge_bc250(feature)
+                if lugar is None:
+                    print(f"""
+:warning:  Não foi possível gerar nome o conteúdo da ficha para o lugar
+    "{feature['properties']['nome']}". A ficha não foi gravada.
+                    """)
+                    continue
+                basename = lugar.slug()
+                if basename is None:
+                    print(f"""
+:warning:  Não foi possível gerar nome de arquivo/ficheiro para o lugar
+    "{feature['properties']['nome']}". A ficha não foi gravada.
+                    """)
+                    continue
+                filename = Path(f"{basename}.md")
+                dest = models.write_file(lugar, output_dir, filename)
+                if dest:
+                    result.append(dest)
+        if f.stem.startswith('PT'):
+            continue
+        if f.stem.startswith('CV'):
+            continue
+        if f.stem.startswith('AO'):
+            continue
+    return result
 
 if __name__ == "__main__":
     raise SystemExit(main())

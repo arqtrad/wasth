@@ -5,7 +5,6 @@ Realiza algumas conversões do esquema DCMI para LIDO.
 Valida a estrutura do conteúdo.
 """
 
-import os
 from copy import deepcopy
 from pathlib import Path
 
@@ -130,13 +129,15 @@ f":warning:  O registro {citation} não contém um campo com chave de citação,
                     # Otherwise it interprets WKT coordinates as nested lists
                 },
             }
-            if isinstance(place_extent['projection'], str) and place_extent.get('projection') is not None:
+            if isinstance(place_extent['projection'], str)\
+                and place_extent.get('projection') is not None:
                 place_footprint['srsName'] = {
                     'type': 'uri',
                     'display': place_extent['projection']
                 }
                 if place_extent['projection'] == 'EPSG:4326 WGS84':
-                    place_footprint['srsName']['refid'] = 'http://www.opengis.net/def/crs/EPSG/0/4326'
+                    place_footprint['srsName']['refid']\
+                    = 'http://www.opengis.net/def/crs/EPSG/0/4326'
             if place_extent.get('source') is not None:
                 place_footprint['source'] = {
                     'display': place_extent['source'],
@@ -171,16 +172,14 @@ f"Sobrescrever ID {current_id} existente com novo ID {new_id}? s/n"
     work['id'] = new_id
     return work
 
-def write_id(source_file: str | None, enc: str = 'utf-8') -> models.Obra:
+def write_id(source_file: Path | None, enc: str = 'utf-8') -> models.Obra:
     "Grava o Open Location Code para o arquivo/ficheiro indicado."
     if not source_file:
-        source_file = input("Inserir um caminho de arquivo/ficheiro:")
-    if not os.path.isfile(source_file):
+        source_file = Path(input("Inserir um caminho de arquivo/ficheiro:"))
+    if source_file.suffix != '.md':
         raise ValueError(
-            f":x:  Arquivo/ficheiro não encontrado em {source_file}"
+f":x:  Arquivo/ficheiro não encontrado em {str(source_file)} ou não é Markdown"
         )
-    if Path(source_file).suffix.lower() != ".md":
-        raise ValueError(f":x:  {source_file} não é um arquivo válido.")
     try:
         work = models.Obra.from_file(source_file)
     except Exception as e:
@@ -189,36 +188,22 @@ def write_id(source_file: str | None, enc: str = 'utf-8') -> models.Obra:
    {e}
             """) from e
     work = make_id(work)
-    with open(source_file, 'w', encoding=enc) as f:
+    with source_file.open('w', encoding=enc) as f:
         frontmatter.dump(work, f, sort_keys=False)
         print(
-f":card_index:  ID: {make_id(work).get('id')} gravado em {source_file}."
+f":card_index:  ID: {make_id(work).get('id')} gravado em {str(source_file)}."
         )
     return work
 
-def main(args: models.InOutPaths | None = None) -> list | None:
+def main(paths: models.InOutPaths | None = None) -> list | None:
     """Compila todos os arquivos/ficheiros a serem gravados."""
-    if args is None:
-        args = models.paths()
-        if args is None:
+    if paths is None:
+        paths = models.paths(filetype='.md')
+        if paths is None:
             return None
-    files = []
-    raw_files = sorted(args['filelist'])
-    for f in raw_files:
-        if Path(f).suffix == ".md":
-            files.append(f)
-    output_dir = args['output_dir']
-    try:
-        Path(output_dir).mkdir(exist_ok=True, parents=True)
-        print(f"""
-:open_file_folder:  Pasta '{str(output_dir)}' criada com sucesso.
-        """)
-    except PermissionError as e:
-        raise PermissionError(f"""
-:x:  Não foi possível criar a pasta '{str(output_dir)}': {e}.
-        """) from e
-    except Exception as e:
-        raise OSError(f":x:  Erro na criação da pasta: {e}") from e
+    output_dir = paths['output_dir']
+    models.make_output_dir(output_dir)
+    files = sorted(paths['filelist'])
     for file in files:
         post = frontmatter.load(file)
         filename = Path(file)

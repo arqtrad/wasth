@@ -1,6 +1,6 @@
 [project]
 name = "wasth"
-version = "0.2.1"
+version = "0.3.0"
 description = "Web App para a documentação de Sítios Tradicionais e Históricos"
 readme = "README.md"
 authors = [
@@ -19,6 +19,7 @@ dependencies = [
     "rich>=15.0.0",
     "ruamel-yaml>=0.19.1",
     "typer>=0.26.8",
+    "unidecode>=1.4.0",
     "xmlschema>=4.3.1",
     "xmltodict>=1.0.4",
     "yamale[ruamel]>=6.1.0",
