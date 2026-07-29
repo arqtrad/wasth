@@ -36,4 +36,4 @@ jobs:
       - name: Run tests
         run: uv run pytest
       - name: Lint
-        run: uv run pylint $(git ls-files '*.py')
+        run: uv run pylint --load_plugins pylint_pytest $(git ls-files '*.py') -f colorized
