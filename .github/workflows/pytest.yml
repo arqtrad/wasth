@@ -1,0 +1,39 @@
+name: "Python lint and PyTest"
+
+on:
+  pull_request:
+  push:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "test"
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: pylint-pytest
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.14"]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+      - name: Install UV
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          version: "0.11.28"
+          python-version: ${{ matrix.python-version }}
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+      - name: Install package
+        run: uv pip install -e .
+      - name: Run tests
+        run: uv run pytest
+      - name: Lint
+        run: uv run pylint --load_plugins pylint_pytest $(git ls-files '*.py') -f colorized

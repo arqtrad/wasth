@@ -7,12 +7,14 @@ Valida a estrutura do conteúdo.
 
 from copy import deepcopy
 from pathlib import Path
-import sys
-import os
-import frontmatter
-from ruamel.yaml import YAML
-yaml = YAML(typ='safe')
 
+import frontmatter
+from rich import print
+from ruamel.yaml import YAML
+
+from wasth.core import models
+
+yaml = YAML(typ='safe')
 
 def normalize(post: frontmatter.Post) -> frontmatter.Post:
     """
@@ -26,25 +28,32 @@ def normalize(post: frontmatter.Post) -> frontmatter.Post:
     - spatial:location de map para lista
     - format:extent e spatial:extent normalizados para format:extent (lista)
     """
-    bibliographicCitation = post.get('bibliographicCitation')
-    if isinstance(bibliographicCitation, dict):
-        if bibliographicCitation.get('citekey') is not None:
+    bibliographic_citation = post.get('bibliographicCitation')
+    if isinstance(bibliographic_citation, dict):
+        if bibliographic_citation.get('citekey') is not None:
             post['bibliographicCitation'] = [
-                bibliographicCitation.get('citekey')
+                bibliographic_citation.get('citekey')
             ]
         else:
             raise ValueError(
-                f"📖  {bibliographicCitation} não contém uma chave de citação para {post['title'].upper()}."
+f":book:  {bibliographic_citation} não contém uma chave de citação para {post['title'].upper()}."
             )
-    elif isinstance(bibliographicCitation, list):
+    elif isinstance(bibliographic_citation, list):
         citekeys = []
-        for citation in bibliographicCitation:
+        for citation in bibliographic_citation:
             if isinstance(citation, str):
-                citekeys.append(citation if citation.startswith('@') else '@' + citation)
+                citekeys.append(
+                    citation if citation.startswith('@') else '@' + citation
+                )
             elif isinstance(citation, dict) and isinstance(citation.get('relids'), str):
-                citekeys.append(citation['relids'] if citation['relids'].startswith('@') else "@" + citation['relids'])
+                citekeys.append(
+                    citation['relids'] if citation['relids'].startswith('@')
+                    else "@" + citation['relids']
+                )
             else:
-                print(f"⚠️  O registro {citation} não contém um campo com chave de citação, ignorando...")
+                print(
+f":warning:  O registro {citation} não contém um campo com chave de citação, ignorando..."
+                )
         if len(citekeys) > 0:
             post['bibliographicCitation'] = citekeys
 
@@ -57,16 +66,11 @@ def normalize(post: frontmatter.Post) -> frontmatter.Post:
         del post['coverage']
 
     spatial = post.get('spatial')
-    format = post.get('format')
-    if format is not None:
-        format_extent = format.get('extent')
-        if isinstance(format_extent, list):
+    post_format = post.get('format')
+    if post_format is not None:
+        format_extent = post_format.get('extent')
+        if format_extent is not None and isinstance(format_extent, list):
             measurements = deepcopy(format_extent)
-        elif isinstance(spatial, dict) and isinstance(spatial.get('extent'), list):
-            measurements = deepcopy(spatial['extent'])
-        else:
-            measurements = []
-        if len(measurements) > 0:
             for m in measurements:
                 m['extent'] = deepcopy(m.get('type'))
                 m['type'] = 'http://terminology.lido-schema.org/lido00927'
@@ -74,10 +78,21 @@ def normalize(post: frontmatter.Post) -> frontmatter.Post:
                 m['unit'] = { 'display': m.get('unit') } # Not schema-conforming
                 if m.get('measurements') is not None:
                     del m['measurements']
-            if isinstance(format_extent, list):
-                post['format']['extent'] = {
-                    'measurements': measurements,
-                }
+            post['format']['extent'] = { 'measurements': measurements }
+
+    elif isinstance(spatial, dict) and isinstance(spatial.get('extent'), list):
+        measurements = deepcopy(spatial['extent'])
+        for m in measurements:
+            m['extent'] = deepcopy(m.get('type'))
+            m['type'] = 'http://terminology.lido-schema.org/lido00927'
+            m['value'] = deepcopy(m.get('measurements'))
+            m['unit'] = { 'display': m.get('unit') } # Not schema-conforming
+            if m.get('measurements') is not None:
+                del m['measurements']
+        post['format'] = post.get('format') or {}
+        post['format']['extent'] = {
+            'measurements': measurements,
+        }
 
     places = []
     if isinstance(spatial, dict):
@@ -114,13 +129,15 @@ def normalize(post: frontmatter.Post) -> frontmatter.Post:
                     # Otherwise it interprets WKT coordinates as nested lists
                 },
             }
-            if isinstance(place_extent['projection'], str) and place_extent.get('projection') is not None:
+            if isinstance(place_extent['projection'], str)\
+                and place_extent.get('projection') is not None:
                 place_footprint['srsName'] = {
                     'type': 'uri',
                     'display': place_extent['projection']
                 }
                 if place_extent['projection'] == 'EPSG:4326 WGS84':
-                    place_footprint['srsName']['refid'] = 'http://www.opengis.net/def/crs/EPSG/0/4326'
+                    place_footprint['srsName']['refid']\
+                    = 'http://www.opengis.net/def/crs/EPSG/0/4326'
             if place_extent.get('source') is not None:
                 place_footprint['source'] = {
                     'display': place_extent['source'],
@@ -131,65 +148,72 @@ def normalize(post: frontmatter.Post) -> frontmatter.Post:
         post['spatial'] = deepcopy(places) if places else None
     return post
 
-def paths(args: list | None = None) -> dict[list[str], str] | None:
-    if not args:
-        if len(sys.argv) == 3:
-            args = sys.argv[1:]
-        else:
-            text = input(
-                """
-                Informar um caminho de arquivo/ficheiro ou pasta de leitura
-                e uma pasta de saída:
-                (deixar em branco cancela a operação)
-                """
-            ).strip()
-            args = text.split()
-    if len(args) == 2:
-        source, output_dir = args
-    else:
-        raise ValueError("Informar dois argumentos.")
+def make_id(work: models.Obra, overwrite: bool | None = None) -> models.Obra:
+    "Roda o método de geração de ID Open Location no objeto models.Obra"
+    if work.get('spatial') is None:
+        pass
+    current_id = work.get('id')
+    new_id = work.olc_id()
+    if new_id is None:
+        pass
+    if current_id == new_id or new_id is None:
+        return work
+    if current_id is None:
+        work['id'] = new_id
+        return work
+    if current_id != new_id:
+        if overwrite is None:
+            prompt = input(
+f"Sobrescrever ID {current_id} existente com novo ID {new_id}? s/n"
+            ).strip().lower()
+            overwrite = prompt in { "s", "sim", "y", "yes", "true" }
+        if overwrite is False:
+            return work
+    work['id'] = new_id
+    return work
 
-    if os.path.isfile(source) and Path(source).suffix.lower() == ".md":
-        filelist = [ source ]
-    elif os.path.isdir(source):
-        filelist = [
-            os.path.join(source, f)
-            for f in os.listdir(source)
-            if os.path.isfile(os.path.join(source, f)) and Path(f).suffix.lower() == ".md"
-        ]
-    else:
-        raise ValueError("O primeiro argumento não é um arquivo ou pasta válido.")
-    return {'filelist': filelist, 'output_dir': output_dir}
-
-def write_file(post: frontmatter.Post, output_dir: str, filename: str) -> None:
+def write_id(source_file: Path | None, enc: str = 'utf-8') -> models.Obra:
+    "Grava o Open Location Code para o arquivo/ficheiro indicado."
+    if not source_file:
+        source_file = Path(input("Inserir um caminho de arquivo/ficheiro:"))
+    if source_file.suffix != '.md':
+        raise ValueError(
+f":x:  Arquivo/ficheiro não encontrado em {str(source_file)} ou não é Markdown"
+        )
     try:
-        os.makedirs(output_dir, exist_ok=True)
-        dest = os.path.join(output_dir, filename)
-        frontmatter.dump(post, dest, sort_keys=False)
-        print(f"📄  '{dest}' gravado com sucesso.")
+        work = models.Obra.from_file(source_file)
     except Exception as e:
-        print(f"❌  Erro na escrita em '{dest}': {e}")
+        raise ValueError(f"""
+:x:  Erro ao ler {source_file}:
+   {e}
+            """) from e
+    work = make_id(work)
+    with source_file.open('w', encoding=enc) as f:
+        frontmatter.dump(work, f, sort_keys=False)
+        print(
+f":card_index:  ID: {make_id(work).get('id')} gravado em {str(source_file)}."
+        )
+    return work
 
-def main(args: dict[list, str] | None = None) -> int | None:
-    if args is None:
-        args = paths()
-        if args is None:
+def main(paths: models.InOutPaths | None = None) -> list | None:
+    """Compila todos os arquivos/ficheiros a serem gravados."""
+    if not paths:
+        paths = models.paths(filetype='.md')
+        if not paths:
             return None
-    files = args['filelist']
-    output_dir = args['output_dir']
-    try:
-        os.makedirs(output_dir, exist_ok=True)
-        print(f"📁  Pasta '{output_dir}' criada com sucesso.")
-    except PermissionError:
-        print(f"❌  Não foi possível criar a pasta '{output_dir}': sem permissões.")
-    except Exception as e:
-        print(f"❌  Erro na criação da pasta: {e}")
+    output_dir = paths['output_dir']
+    models.make_output_dir(output_dir)
+    files = sorted(paths['filelist'])
     for file in files:
         post = frontmatter.load(file)
-        filename = os.path.basename(file)
+        filename = Path(file)
         post = normalize(post)
-        write_file(post, output_dir, filename)
-    return 0
+# Funcionalidade temporária abaixo, remover quando não for mais necessária.
+        obra = models.Obra.from_post(post)
+        post = make_id(obra)
+# Funcionalidade temporária acima, remover quando não for mais necessária.
+        models.write_file(post, output_dir, filename)
+    return files
 
 if __name__ == "__main__":
     raise SystemExit(main())

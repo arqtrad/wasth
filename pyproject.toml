@@ -1,6 +1,6 @@
 [project]
 name = "wasth"
-version = "0.2.1"
+version = "0.3.0"
 description = "Web App para a documentação de Sítios Tradicionais e Históricos"
 readme = "README.md"
 authors = [
@@ -14,8 +14,12 @@ dependencies = [
     "openlocationcode>=1.0.1",
     "pandoc>=2.4",
     "pydantic[email]>=2.13.4",
+    "pyorcid-checksum",
     "python-frontmatter>=1.3.0",
+    "rich>=15.0.0",
     "ruamel-yaml>=0.19.1",
+    "typer>=0.26.8",
+    "unidecode>=1.4.0",
     "xmlschema>=4.3.1",
     "xmltodict>=1.0.4",
     "yamale[ruamel]>=6.1.0",
@@ -23,7 +27,8 @@ dependencies = [
 ]
 
 [project.scripts]
-wasth = "wasth.normalize:main"
+wasth = "wasth.cli:main"
+wasth-web = "wasth.web:main"
 
 [build-system]
 requires = ["uv_build>=0.11.13,<0.12.0"]
@@ -32,7 +37,12 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "pre-commit>=4.6.0",
-    "pytest>=9.0.3",
+    "pylint>=4.0.6",
+    "pylint-pytest>=1.1.7",
+    "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.15.12",
 ]
+
+[tool.uv.sources]
+pyorcid-checksum = { git = "https://github.com/arqtrad/PyORCID-checker" }
