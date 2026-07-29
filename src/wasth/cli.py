@@ -19,9 +19,9 @@ def user_orcid(orcid: str) -> str:
     try:
         valida = checker.check_orcid_checksum(orcid)
     except Exception as e:
-        raise typer.BadParameter(f":w:  Erro de validação: {e}.")
+        raise typer.BadParameter(f":x:  Erro de validação: {e}.")
     if valida is False:
-        raise typer.BadParameter(":w:  ORCiD inválido.")
+        raise typer.BadParameter(":x:  ORCiD inválido.")
     return checker.parse_orcid(orcid)
 
 @app.command()
@@ -34,8 +34,8 @@ def main(
             callback=user_orcid,
             help="Seu número do ORCiD.",
         ),
-    ]
-):
+    ] | None = None
+) -> None:
     """
     Esta é a tela de acesso à interfaz de preenchimento das fichas dos
     Documentários de arquitetura tradicional.

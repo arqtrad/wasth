@@ -56,7 +56,7 @@ def main(
     args: models.InOutPaths | None = None,
     ignore_output_dir: bool = True,
     encoding: str = 'utf-8'
-) -> None:
+) -> bool | None:
     """Realiza validação de esquema XML numa lista de documentos."""
     args = models.paths(overwrite=ignore_output_dir)
     if not args:
@@ -65,11 +65,12 @@ def main(
     for f in files:
         try:
             valid_xml(f, encoding=encoding)
+            return True
         except Exception as e:
-            print(f"""
+            raise OSError(f"""
 -------------------------------------------------------------------------------
 :prohibited: Não foi possível ler {str(f)}: {e}
-                """)
+                """) from e
 
 if __name__ == "__main__":
     raise SystemExit(main())

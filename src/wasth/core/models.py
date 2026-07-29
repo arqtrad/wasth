@@ -3,6 +3,7 @@
 import os
 import re
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Required, TypedDict
 
@@ -136,7 +137,11 @@ class Lugar(Obra):
     - Gera ou atualiza a partir da toponímia de Portugal continental do DGT.
     """
     @classmethod
-    def from_ibge_bc250(cls, feature: geojson.Feature) -> "Lugar | None":
+    def from_ibge_bc250(
+        cls,
+        feature: geojson.Feature,
+        orcid: str | None = None
+    ) -> "Lugar | None":
         """Gera fichas a partir de geojson.Feature
 
 Esta função recebe a base cartográfica do IBGE na escala 1:250.000 (BC250)
@@ -169,6 +174,8 @@ A função realiza as seguintes operações:
         coords = geom.get('coordinates', [])
         if not isinstance(coords, (list, tuple)) or len(coords) < 2:
             return None
+        olc_code = openlocationcode.encode(coords[1], coords[0], 11)
+        created_date = date.today()
 
         br: LIDORepository = {
             'type': 'site',
@@ -198,7 +205,9 @@ A função realiza as seguintes operações:
         metadata = {
             'title': props.get('nome', str).strip(),
             'title_type': 'repository',
-            'id': openlocationcode.encode(coords[1], coords[0], 11),
+            'id': olc_code,
+            'date': created_date,
+            'author': orcid,
             'spatial': [
                 {
                     'type': 'site',
@@ -263,23 +272,24 @@ A função realiza as seguintes operações:
                 context_refid = 'https://www.wikidata.org/wiki/Q515'
                 context_display = 'cidade'
             case 'lml_aglomerado_rural_isolado_p':
-                if props.get('tipoaglomrurisol'):
-                    context_display = props['tipoaglomrurisol'].lower()
-                    match props['tipoaglomrurisol'].strip().lower():
-                        case 'povoado':
-                            context_refid = 'https://www.wikidata.org/wiki/Q532'
-                        case 'núcleo':
-                            context_refid = 'https://www.wikidata.org/wiki/Q3257686'
-                        case 'lugarejo':
-                            context_refid = 'https://www.wikidata.org/wiki/Q55504400'
-                        case 'outros aglomerados rurais isolados':
-                            context_refid = 'https://www.wikidata.org/wiki/Q10354598'
-                        case _:
-                            context_display = 'sítio habitado'
-                            context_refid = 'https://www.wikidata.org/wiki/Q486972'
+                context_refid = 'https://www.wikidata.org/wiki/Q10354598'
             case _:
                 context_display = 'sítio habitado'
                 context_refid = 'https://www.wikidata.org/wiki/Q486972'
+        if props.get('tipoaglomrurisol'):
+            context_display = props['tipoaglomrurisol'].lower()
+            match props['tipoaglomrurisol'].strip().casefold():
+                case 'povoado':
+                    context_refid = 'https://www.wikidata.org/wiki/Q532'
+                case 'núcleo':
+                    context_refid = 'https://www.wikidata.org/wiki/Q3257686'
+                case 'lugarejo':
+                    context_refid = 'https://www.wikidata.org/wiki/Q55504400'
+                case 'outros aglomerados rurais isolados':
+                    context_refid = 'https://www.wikidata.org/wiki/Q10354598'
+                case _:
+                    context_display = 'sítio habitado'
+                    context_refid = 'https://www.wikidata.org/wiki/Q486972'
         if props.get('tipocapital'):
             function_display = props['tipocapital'].lower()
             match props['tipocapital']:
@@ -399,8 +409,8 @@ def pt_ascii(text: str) -> str:
     text = re.sub(r"ó\b", "oh", text)
     text = re.sub(r"ú\b", "uh", text)
     text = unidecode(text)
-    text = re.sub(r"[\s_\+\/]+", "_", text)
-    text = re.sub(r"[^a-z0-9_-]", "", text)
+    text = re.sub(r"[^\w]+", "_", text)
+    text = re.sub(r"_[_-]+", "_", text)
     return text.strip("_-")
 
 def paths(

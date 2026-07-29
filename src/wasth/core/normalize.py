@@ -197,9 +197,9 @@ f":card_index:  ID: {make_id(work).get('id')} gravado em {str(source_file)}."
 
 def main(paths: models.InOutPaths | None = None) -> list | None:
     """Compila todos os arquivos/ficheiros a serem gravados."""
-    if paths is None:
+    if not paths:
         paths = models.paths(filetype='.md')
-        if paths is None:
+        if not paths:
             return None
     output_dir = paths['output_dir']
     models.make_output_dir(output_dir)

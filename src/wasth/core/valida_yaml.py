@@ -31,10 +31,10 @@ def f_read(file: Path, enc="utf-8") -> dict:
         }
     return document
 
-def parse_metadata(f, enc="utf-8") -> frontmatter.Post:
+def parse_metadata(file, encoding="utf-8") -> frontmatter.Post:
     """Carrega metadados em forma de dicionário com python-frontmatter"""
-    with open(f, 'r', encoding=enc) as f:
-        post = frontmatter.load(f)
+    with open(file, 'r', encoding=encoding) as document:
+        post = frontmatter.load(document)
     return post
 
 def serialize(data) -> str | None:
