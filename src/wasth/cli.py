@@ -13,22 +13,6 @@ from wasth.core import geoprocessa, models, valida_yaml
 app = typer.Typer()
 
 @app.command()
-def orcid(orcid: str) -> str:
-    """Recebe, valida e normaliza um ORCiD inserido pelo usuário
-
-    :param orcid: o número do ORCiD ou o URI completo.
-    """
-    orcid = orcid.strip()
-    checker = ORCID_Checksum()
-    try:
-        valida = checker.check_orcid_checksum(orcid)
-    except Exception as e:
-        raise typer.BadParameter(f":x:  Erro de validação: {e}.")
-    if valida is False:
-        raise typer.BadParameter(":x:  ORCiD inválido.")
-    return checker.parse_orcid(orcid)
-
-@app.command()
 def valida(
     object_class: Annotated[
         str, typer.Argument(
@@ -98,8 +82,13 @@ def geojson(
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context) -> None:
     """
-    Esta é a tela de acesso à interfaz de processamento das fichas dos
-    Documentários de arquitetura tradicional.
+ Interfaz de linha de comando da aplicação
+ [bold]WASTH[/bold] : Web App para Sítios Tradicionais e Históricos
+
+Esta aplicação foi concebida para processar as fichas
+dos Documentários da Arquitetura Tradicional.
+
+Digite os comandos e as opções abaixo para usar as funcionalidades do WASTH.
     """
     rprint("""
 -------------------------------------------------------
